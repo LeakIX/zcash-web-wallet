@@ -127,7 +127,6 @@ fn generate_wallet(output_path: &str) -> Result<()> {
         "unified_address": wallet.unified_address,
         "unified_full_viewing_key": wallet.unified_full_viewing_key,
         "transparent_address": wallet.transparent_address,
-        "sapling_address": wallet.sapling_address,
     });
 
     // Write wallet to file
@@ -153,11 +152,6 @@ fn generate_wallet(output_path: &str) -> Result<()> {
     if let Some(ref transparent) = wallet.transparent_address {
         println!("Transparent Address:");
         println!("  {}", transparent);
-        println!();
-    }
-    if let Some(ref sapling) = wallet.sapling_address {
-        println!("Sapling Address:");
-        println!("  {}", sapling);
         println!();
     }
     println!("------------------------------------------------------------");
@@ -200,7 +194,6 @@ fn restore_wallet(seed_phrase: &str, output_path: Option<&str>) -> Result<()> {
             "unified_address": wallet.unified_address,
             "unified_full_viewing_key": wallet.unified_full_viewing_key,
             "transparent_address": wallet.transparent_address,
-            "sapling_address": wallet.sapling_address,
         });
 
         let json_string = serde_json::to_string_pretty(&wallet_json)?;
@@ -221,11 +214,6 @@ fn restore_wallet(seed_phrase: &str, output_path: Option<&str>) -> Result<()> {
     if let Some(ref transparent) = wallet.transparent_address {
         println!("Transparent Address:");
         println!("  {}", transparent);
-        println!();
-    }
-    if let Some(ref sapling) = wallet.sapling_address {
-        println!("Sapling Address:");
-        println!("  {}", sapling);
         println!();
     }
     println!("Unified Full Viewing Key:");

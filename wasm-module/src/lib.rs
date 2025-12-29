@@ -77,7 +77,6 @@ pub struct WalletData {
     pub network: String,
     pub unified_address: Option<String>,
     pub transparent_address: Option<String>,
-    pub sapling_address: Option<String>,
     pub unified_full_viewing_key: Option<String>,
     pub error: Option<String>,
 }
@@ -391,7 +390,6 @@ pub fn generate_wallet() -> String {
                 network: wallet.network,
                 unified_address: Some(wallet.unified_address),
                 transparent_address: wallet.transparent_address,
-                sapling_address: wallet.sapling_address,
                 unified_full_viewing_key: Some(wallet.unified_full_viewing_key),
                 error: None,
             }
@@ -402,7 +400,6 @@ pub fn generate_wallet() -> String {
             network: String::new(),
             unified_address: None,
             transparent_address: None,
-            sapling_address: None,
             unified_full_viewing_key: None,
             error: Some(e.to_string()),
         },
@@ -415,7 +412,6 @@ pub fn generate_wallet() -> String {
             network: String::new(),
             unified_address: None,
             transparent_address: None,
-            sapling_address: None,
             unified_full_viewing_key: None,
             error: Some(format!("Serialization error: {}", e)),
         })
@@ -440,7 +436,6 @@ pub fn restore_wallet(seed_phrase: &str) -> String {
                 network: wallet.network,
                 unified_address: Some(wallet.unified_address),
                 transparent_address: wallet.transparent_address,
-                sapling_address: wallet.sapling_address,
                 unified_full_viewing_key: Some(wallet.unified_full_viewing_key),
                 error: None,
             }
@@ -451,7 +446,6 @@ pub fn restore_wallet(seed_phrase: &str) -> String {
             network: String::new(),
             unified_address: None,
             transparent_address: None,
-            sapling_address: None,
             unified_full_viewing_key: None,
             error: Some(e.to_string()),
         },
@@ -464,7 +458,6 @@ pub fn restore_wallet(seed_phrase: &str) -> String {
             network: String::new(),
             unified_address: None,
             transparent_address: None,
-            sapling_address: None,
             unified_full_viewing_key: None,
             error: Some(format!("Serialization error: {}", e)),
         })

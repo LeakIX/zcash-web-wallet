@@ -88,6 +88,13 @@ Browser                                        Zcash Node
 - JS/HTML: `prettier --write`
 - Sass: indented syntax has strict formatting rules (no automated formatter)
 
+### Pre-Commit Checklist
+
+Before committing and pushing changes:
+1. Run `make test` and ensure all tests pass
+2. Run `make format` to format all code
+3. Run `make lint` to check for linting issues
+
 ### Commit Standards
 
 - No emojis in commit messages

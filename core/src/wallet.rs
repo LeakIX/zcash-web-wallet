@@ -39,8 +39,6 @@ pub struct WalletInfo {
     pub unified_address: String,
     /// The transparent (t-addr) address.
     pub transparent_address: Option<String>,
-    /// The Sapling (z-addr) address.
-    pub sapling_address: Option<String>,
     /// The Unified Full Viewing Key.
     pub unified_full_viewing_key: String,
 }
@@ -119,18 +117,11 @@ pub fn derive_wallet(seed: &[u8], seed_phrase: String) -> Result<WalletInfo, Wal
         None
     };
 
-    // Get Sapling address if available
-    let sapling_address = ufvk.sapling().map(|dfvk| {
-        let (_, payment_address) = dfvk.default_address();
-        payment_address.encode(&network)
-    });
-
     Ok(WalletInfo {
         seed_phrase,
         network: "testnet".to_string(),
         unified_address: ua_encoded,
         transparent_address,
-        sapling_address,
         unified_full_viewing_key: ufvk_encoded,
     })
 }
@@ -149,7 +140,6 @@ mod tests {
 
         assert_eq!(wallet1.unified_address, wallet2.unified_address);
         assert_eq!(wallet1.transparent_address, wallet2.transparent_address);
-        assert_eq!(wallet1.sapling_address, wallet2.sapling_address);
         assert_eq!(
             wallet1.unified_full_viewing_key,
             wallet2.unified_full_viewing_key
@@ -172,14 +162,6 @@ mod tests {
                 .map(|s| s.starts_with("tm"))
                 .unwrap_or(false),
             "transparent address should start with 'tm' for testnet"
-        );
-        assert!(
-            wallet
-                .sapling_address
-                .as_ref()
-                .map(|s| s.starts_with("ztestsapling"))
-                .unwrap_or(false),
-            "sapling address should start with 'ztestsapling' for testnet"
         );
         assert!(
             wallet.unified_full_viewing_key.starts_with("uviewtest"),
@@ -244,7 +226,6 @@ mod tests {
         assert!(!wallet.seed_phrase.is_empty());
         assert!(!wallet.unified_address.is_empty());
         assert!(wallet.transparent_address.is_some());
-        assert!(wallet.sapling_address.is_some());
         assert!(!wallet.unified_full_viewing_key.is_empty());
     }
 }

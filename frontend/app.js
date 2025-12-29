@@ -730,8 +730,6 @@ function displayWalletResult(wallet) {
     wallet.unified_address || "";
   document.getElementById("transparentAddressDisplay").textContent =
     wallet.transparent_address || "";
-  document.getElementById("saplingAddressDisplay").textContent =
-    wallet.sapling_address || "";
   document.getElementById("ufvkDisplay").textContent =
     wallet.unified_full_viewing_key || "";
 }
@@ -776,7 +774,6 @@ function downloadWallet() {
     network: currentWalletData.network,
     unified_address: currentWalletData.unified_address,
     transparent_address: currentWalletData.transparent_address,
-    sapling_address: currentWalletData.sapling_address,
     unified_full_viewing_key: currentWalletData.unified_full_viewing_key,
     generated_at: new Date().toISOString(),
   };
