@@ -9,6 +9,9 @@ description = "WASM module for decrypting Zcash shielded transactions"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+# Core library
+zcash-wallet-core = { path = "../core" }
+
 # Zcash crates - disable proving features for WASM compatibility
 orchard = { workspace = true, features = ["std"] }
 sapling-crypto = { workspace = true, features = ["std"] }
@@ -19,8 +22,7 @@ zcash_protocol.workspace = true
 zcash_transparent.workspace = true
 zip32.workspace = true
 
-# BIP39 mnemonic
-bip39.workspace = true
+# BIP39 mnemonic (for entropy generation)
 rand.workspace = true
 
 # WASM bindings

@@ -151,8 +151,13 @@ test: test-rust test-e2e ## Run all tests
 	@echo "All tests passed"
 
 .PHONY: test-rust
-test-rust: test-wasm test-cli ## Run all Rust unit tests
+test-rust: test-core test-wasm test-cli ## Run all Rust unit tests
 	@echo "Rust tests complete"
+
+.PHONY: test-core
+test-core: ## Run core library unit tests
+	@echo "Running core library tests..."
+	cargo +nightly test -p zcash-wallet-core
 
 .PHONY: test-wasm
 test-wasm: ## Run WASM module unit tests
