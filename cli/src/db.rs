@@ -1,6 +1,6 @@
 //! SQLite database module for storing notes and nullifiers.
 
-use anyhow::{Context, Result};
+use crate::error::{CliError, Result};
 use rusqlite::{Connection, params};
 use std::path::Path;
 
@@ -29,7 +29,8 @@ pub struct Database {
 impl Database {
     /// Open or create a database at the given path.
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let conn = Connection::open(path).context("Failed to open database")?;
+        let conn = Connection::open(path)
+            .map_err(|e| CliError::Database(format!("Failed to open database: {}", e)))?;
         let db = Self { conn };
         db.init()?;
         Ok(db)
@@ -38,7 +39,8 @@ impl Database {
     /// Open an in-memory database (for testing).
     #[cfg(test)]
     pub fn open_in_memory() -> Result<Self> {
-        let conn = Connection::open_in_memory().context("Failed to open in-memory database")?;
+        let conn = Connection::open_in_memory()
+            .map_err(|e| CliError::Database(format!("Failed to open in-memory database: {}", e)))?;
         let db = Self { conn };
         db.init()?;
         Ok(db)
@@ -74,7 +76,9 @@ impl Database {
             CREATE INDEX IF NOT EXISTS idx_spent ON notes(spent_txid);
             "#,
             )
-            .context("Failed to initialize database schema")?;
+            .map_err(|e| {
+                CliError::Database(format!("Failed to initialize database schema: {}", e))
+            })?;
         Ok(())
     }
 
@@ -162,7 +166,7 @@ impl Database {
                     spent_txid: row.get(10)?,
                 })
             })?
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<std::result::Result<Vec<_>, _>>()?;
         Ok(notes)
     }
 
@@ -192,7 +196,7 @@ impl Database {
                     spent_txid: row.get(10)?,
                 })
             })?
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<std::result::Result<Vec<_>, _>>()?;
         Ok(notes)
     }
 
@@ -237,7 +241,7 @@ impl Database {
         )?;
         let balances = stmt
             .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<std::result::Result<Vec<_>, _>>()?;
         Ok(balances)
     }
 }

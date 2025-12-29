@@ -6,7 +6,6 @@
 
 use orchard::keys::{FullViewingKey as OrchardFvk, PreparedIncomingViewingKey, Scope};
 use orchard::note_encryption::OrchardDomain;
-use thiserror::Error;
 use zcash_address::unified::{self, Container, Encoding};
 use zcash_note_encryption::try_note_decryption;
 use zcash_primitives::transaction::Transaction;
@@ -17,17 +16,24 @@ use crate::types::{
 };
 
 /// Errors that can occur during scanning operations.
-#[derive(Error, Debug)]
+#[derive(Debug)]
 pub enum ScannerError {
-    #[error("Invalid transaction hex: {0}")]
     InvalidTransactionHex(String),
-
-    #[error("Failed to parse transaction: {0}")]
     TransactionParseFailed(String),
-
-    #[error("Unrecognized viewing key format")]
     UnrecognizedViewingKey,
 }
+
+impl core::fmt::Display for ScannerError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::InvalidTransactionHex(msg) => write!(f, "Invalid transaction hex: {}", msg),
+            Self::TransactionParseFailed(msg) => write!(f, "Failed to parse transaction: {}", msg),
+            Self::UnrecognizedViewingKey => write!(f, "Unrecognized viewing key format"),
+        }
+    }
+}
+
+impl core::error::Error for ScannerError {}
 
 /// Parse a transaction from hex bytes.
 ///

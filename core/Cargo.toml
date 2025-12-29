@@ -24,8 +24,5 @@ hex.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 
-# Error handling
-thiserror.workspace = true
-
 [dev-dependencies]
 rand.workspace = true

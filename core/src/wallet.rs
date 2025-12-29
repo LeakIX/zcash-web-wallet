@@ -45,7 +45,6 @@
 
 use bip39::{Language, Mnemonic};
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 use zcash_keys::encoding::AddressCodec;
 use zcash_keys::keys::{UnifiedAddressRequest, UnifiedSpendingKey};
 use zcash_protocol::consensus::Network;
@@ -55,23 +54,28 @@ use zip32::{AccountId, DiversifierIndex};
 use crate::types::NetworkKind;
 
 /// Errors that can occur during wallet operations.
-#[derive(Error, Debug)]
+#[derive(Debug)]
 pub enum WalletError {
-    #[error("Invalid seed phrase: {0}")]
     InvalidSeedPhrase(String),
-
-    #[error("Failed to generate mnemonic: {0}")]
     MnemonicGeneration(String),
-
-    #[error("Failed to derive spending key: {0}")]
     SpendingKeyDerivation(String),
-
-    #[error("Failed to generate address: {0}")]
     AddressGeneration(String),
-
-    #[error("Invalid account index: {0}")]
     InvalidAccountIndex(String),
 }
+
+impl core::fmt::Display for WalletError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::InvalidSeedPhrase(msg) => write!(f, "Invalid seed phrase: {}", msg),
+            Self::MnemonicGeneration(msg) => write!(f, "Failed to generate mnemonic: {}", msg),
+            Self::SpendingKeyDerivation(msg) => write!(f, "Failed to derive spending key: {}", msg),
+            Self::AddressGeneration(msg) => write!(f, "Failed to generate address: {}", msg),
+            Self::InvalidAccountIndex(msg) => write!(f, "Invalid account index: {}", msg),
+        }
+    }
+}
+
+impl core::error::Error for WalletError {}
 
 /// Information about a derived wallet.
 #[derive(Debug, Clone, Serialize, Deserialize)]

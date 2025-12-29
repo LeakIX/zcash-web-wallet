@@ -1,6 +1,6 @@
 //! Zcash RPC client for fetching transaction data.
 
-use anyhow::{Context, Result, bail};
+use crate::error::{CliError, Result};
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -88,24 +88,28 @@ impl RpcClient {
 
         let response: RpcResponse = req
             .send()
-            .context("Failed to send RPC request")?
+            .map_err(|e| CliError::Rpc(format!("Failed to send RPC request: {}", e)))?
             .json()
-            .context("Failed to parse RPC response")?;
+            .map_err(|e| CliError::Rpc(format!("Failed to parse RPC response: {}", e)))?;
 
         if let Some(error) = response.error {
-            bail!("RPC error {}: {}", error.code, error.message);
+            return Err(CliError::RpcServer {
+                code: error.code,
+                message: error.message,
+            });
         }
 
-        response.result.context("Empty RPC result")
+        response
+            .result
+            .ok_or_else(|| CliError::Rpc("Empty RPC result".to_string()))
     }
 
     /// Get raw transaction hex by txid.
     pub fn get_raw_transaction(&self, txid: &str) -> Result<String> {
         let result = self.call("getrawtransaction", vec![Value::String(txid.to_string())])?;
-        result
-            .as_str()
-            .map(|s| s.to_string())
-            .context("Expected string result from getrawtransaction")
+        result.as_str().map(|s| s.to_string()).ok_or_else(|| {
+            CliError::Rpc("Expected string result from getrawtransaction".to_string())
+        })
     }
 
     /// Get transaction info with verbose output.
@@ -114,7 +118,8 @@ impl RpcClient {
             "getrawtransaction",
             vec![Value::String(txid.to_string()), Value::Number(1.into())],
         )?;
-        serde_json::from_value(result).context("Failed to parse transaction info")
+        serde_json::from_value(result)
+            .map_err(|e| CliError::Rpc(format!("Failed to parse transaction info: {}", e)))
     }
 
     /// Get current block count.
@@ -122,7 +127,7 @@ impl RpcClient {
         let result = self.call("getblockcount", vec![])?;
         result
             .as_i64()
-            .context("Expected integer result from getblockcount")
+            .ok_or_else(|| CliError::Rpc("Expected integer result from getblockcount".to_string()))
     }
 
     /// Get blockchain info.

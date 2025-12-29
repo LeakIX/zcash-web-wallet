@@ -1,7 +1,6 @@
 use std::fs;
 use std::path::Path;
 
-use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
 use rand::RngCore;
 use rand::rngs::OsRng;
@@ -9,7 +8,10 @@ use zcash_protocol::consensus::Network;
 use zcash_wallet_core::{parse_transaction, scan_transaction as scan_tx};
 
 mod db;
+mod error;
 mod rpc;
+
+use error::{CliError, Result};
 
 #[derive(Parser)]
 #[command(name = "zcash-wallet")]
@@ -140,10 +142,7 @@ fn generate_wallet(
     // Check if output file already exists
     let path = Path::new(output_path);
     if path.exists() {
-        bail!(
-            "Output file '{}' already exists. Choose a different filename or remove the existing file.",
-            output_path
-        );
+        return Err(CliError::FileExists(output_path.to_string()));
     }
 
     let network = if mainnet {
@@ -159,7 +158,7 @@ fn generate_wallet(
 
     // Use core library for wallet derivation
     let wallet = zcash_wallet_core::generate_wallet(&entropy, network, account, address_index)
-        .map_err(|e| anyhow::anyhow!("Failed to generate wallet: {}", e))?;
+        .map_err(|e| CliError::Wallet(e.to_string()))?;
 
     // Create JSON wallet data
     let wallet_json = serde_json::json!({
@@ -174,7 +173,10 @@ fn generate_wallet(
 
     // Write wallet to file
     let json_string = serde_json::to_string_pretty(&wallet_json)?;
-    fs::write(path, &json_string).context("Failed to write wallet file")?;
+    fs::write(path, &json_string).map_err(|e| CliError::FileWrite {
+        path: output_path.to_string(),
+        source: e,
+    })?;
 
     // Print summary to console
     println!("============================================================");
@@ -244,16 +246,13 @@ fn restore_wallet(
 
     // Use core library for wallet restoration
     let wallet = zcash_wallet_core::restore_wallet(seed_phrase, network, account, address_index)
-        .map_err(|e| anyhow::anyhow!("Failed to restore wallet: {}", e))?;
+        .map_err(|e| CliError::Wallet(e.to_string()))?;
 
     // Save to file if output path is provided
     if let Some(path_str) = output_path {
         let path = Path::new(path_str);
         if path.exists() {
-            bail!(
-                "Output file '{}' already exists. Choose a different filename or remove the existing file.",
-                path_str
-            );
+            return Err(CliError::FileExists(path_str.to_string()));
         }
 
         let wallet_json = serde_json::json!({
@@ -267,7 +266,10 @@ fn restore_wallet(
         });
 
         let json_string = serde_json::to_string_pretty(&wallet_json)?;
-        fs::write(path, &json_string).context("Failed to write wallet file")?;
+        fs::write(path, &json_string).map_err(|e| CliError::FileWrite {
+            path: path_str.to_string(),
+            source: e,
+        })?;
     }
 
     println!("============================================================");
@@ -356,13 +358,18 @@ fn scan_transaction(
     height: Option<u32>,
 ) -> Result<()> {
     // Load wallet to get viewing key and network
-    let wallet_content = fs::read_to_string(wallet_path)
-        .with_context(|| format!("Failed to read wallet file: {}", wallet_path))?;
+    let wallet_content = fs::read_to_string(wallet_path).map_err(|e| CliError::FileRead {
+        path: wallet_path.to_string(),
+        source: e,
+    })?;
     let wallet_json: serde_json::Value =
-        serde_json::from_str(&wallet_content).context("Failed to parse wallet JSON")?;
+        serde_json::from_str(&wallet_content).map_err(|e| CliError::JsonParse {
+            context: "wallet file".to_string(),
+            source: e,
+        })?;
     let viewing_key = wallet_json["unified_full_viewing_key"]
         .as_str()
-        .context("Wallet missing unified_full_viewing_key")?;
+        .ok_or_else(|| CliError::MissingField("unified_full_viewing_key".to_string()))?;
 
     // Get network from wallet file
     let network_str = wallet_json["network"].as_str().unwrap_or("testnet");
@@ -377,14 +384,18 @@ fn scan_transaction(
     } else if let Some(ref txid) = txid {
         // Fetch via RPC
         let db = db::Database::open(db_path)?;
-        let rpc_url = db
-            .get_config("rpc_url")?
-            .context("RPC URL not configured. Run: zcash-wallet config --rpc-url <url>")?;
+        let rpc_url = db.get_config("rpc_url")?.ok_or_else(|| {
+            CliError::ConfigMissing(
+                "RPC URL not configured. Run: zcash-wallet config --rpc-url <url>".to_string(),
+            )
+        })?;
         let client = rpc::RpcClient::new(&rpc_url);
         println!("Fetching transaction {} from RPC...", txid);
         client.get_raw_transaction(txid)?
     } else {
-        bail!("Must provide either --txid or --raw");
+        return Err(CliError::InvalidArgument(
+            "Must provide either --txid or --raw".to_string(),
+        ));
     };
 
     // Parse and scan transaction
