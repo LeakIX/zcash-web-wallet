@@ -1,6 +1,12 @@
 # Zcash Web Wallet - Makefile
 
 # =============================================================================
+# Configuration
+# =============================================================================
+
+WASM_PACK_VERSION := 0.13.1
+
+# =============================================================================
 # Default target
 # =============================================================================
 
@@ -17,8 +23,8 @@ install: install-wasm-pack install-npm ## Install all dependencies
 
 .PHONY: install-wasm-pack
 install-wasm-pack: ## Install wasm-pack and Rust nightly toolchain
-	@echo "Installing wasm-pack..."
-	@which wasm-pack > /dev/null || cargo install wasm-pack
+	@echo "Installing wasm-pack v$(WASM_PACK_VERSION)..."
+	cargo install wasm-pack --version $(WASM_PACK_VERSION)
 	@echo "Installing Rust nightly toolchain..."
 	@rustup install nightly
 	@rustup target add wasm32-unknown-unknown --toolchain nightly
