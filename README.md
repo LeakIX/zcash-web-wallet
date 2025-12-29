@@ -1,13 +1,14 @@
-# Zcash Shielded Transaction Viewer
+# Zcash Web Wallet
 
-A privacy-preserving tool for viewing Zcash shielded transaction details using viewing keys. All decryption happens client-side - your viewing keys never leave your browser.
+A privacy-preserving Zcash wallet toolkit that runs entirely in your browser. Generate wallets, view shielded transactions, and track balances - all client-side with no server dependencies.
 
 ## Features
 
-- **Web Interface**: View shielded transaction details directly in your browser
-- **CLI Tool**: Generate testnet wallets and track notes/balances locally
-- **Privacy First**: Viewing keys stay local - no server-side processing
-- **Orchard Support**: Full trial decryption for Orchard shielded pools
+- **Wallet Generation**: Create and restore Zcash testnet wallets with BIP39 seed phrases
+- **Transaction Viewer**: Decode shielded transaction details using viewing keys
+- **CLI Tool**: Command-line wallet generation and note/balance tracking
+- **Privacy First**: All cryptographic operations happen locally - keys never leave your device
+- **Orchard Support**: Full support for the latest Orchard shielded pool
 
 ## Quick Start
 
@@ -59,7 +60,8 @@ Browser                              Zcash Node
 
 ## Project Structure
 
-- `wasm-module/` - Rust WASM library for transaction decryption
+- `core/` - Shared Rust library for wallet derivation
+- `wasm-module/` - Rust WASM library for browser-based operations
 - `cli/` - Command-line wallet and note tracking tool
 - `frontend/` - Web interface (Bootstrap + vanilla JS)
 

@@ -1,4 +1,4 @@
-# Zcash Shielded Transaction Viewer - Makefile
+# Zcash Web Wallet - Makefile
 
 # =============================================================================
 # Default target

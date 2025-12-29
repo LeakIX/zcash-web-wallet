@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Zcash Shielded Transaction Viewer - a web application for viewing shielded transaction details using viewing keys. Decryption happens entirely client-side using official Zcash Rust libraries compiled to WebAssembly. The app is fully local with no backend server.
+Zcash Web Wallet - a privacy-preserving Zcash wallet toolkit that runs entirely in your browser. Features include wallet generation, transaction viewing, and balance tracking. All cryptographic operations happen client-side using official Zcash Rust libraries compiled to WebAssembly.
 
 ## Build Commands
 
@@ -61,9 +61,13 @@ Browser                                        Zcash Node
 
 ## Code Structure
 
+- `core/` - Shared Rust library for wallet derivation (used by both CLI and WASM)
 - `wasm-module/` - Rust WASM library using zcash_primitives, orchard, sapling-crypto
-  - Exposes `parse_viewing_key()` and `decrypt_transaction()` to JavaScript
+  - Exposes `parse_viewing_key()`, `decrypt_transaction()`, `generate_wallet()`, `restore_wallet()` to JavaScript
   - Uses Rust nightly (edition 2024) with wasm-pack
+- `cli/` - Command-line tool for wallet generation and note tracking
+  - SQLite database for note/nullifier storage
+  - RPC client for fetching transactions
 - `frontend/` - Bootstrap 5 + vanilla JS + Sass
   - Loads WASM module from `pkg/` subdirectory
   - Queries RPC endpoints directly via JavaScript fetch

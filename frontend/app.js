@@ -1,4 +1,4 @@
-// Zcash Shielded Transaction Viewer - Frontend Application
+// Zcash Web Wallet - Frontend Application
 
 // WASM module instance
 let wasmModule = null;
