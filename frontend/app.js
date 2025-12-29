@@ -866,7 +866,10 @@ function getWallet(id) {
   const resultJson = wasmModule.get_wallet_by_id(walletsJson, id);
   try {
     const result = JSON.parse(resultJson);
-    return result || null;
+    if (result.success && result.wallet) {
+      return result.wallet;
+    }
+    return null;
   } catch {
     return null;
   }
