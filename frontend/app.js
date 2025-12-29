@@ -1734,6 +1734,7 @@ function copyToClipboard(elementId, btn) {
 // ===========================================================================
 
 let derivedAddressesData = [];
+let derivedAddressesNetwork = "testnet";
 
 function initAddressViewerUI() {
   const deriveBtn = document.getElementById("deriveAddressesBtn");
@@ -1869,6 +1870,7 @@ async function deriveAddresses() {
 
     // Combine into address data
     derivedAddressesData = [];
+    derivedAddressesNetwork = wallet.network || "testnet";
     for (let i = 0; i < count; i++) {
       derivedAddressesData.push({
         index: fromIndex + i,
@@ -1891,6 +1893,14 @@ function truncateAddress(address, startChars = 12, endChars = 6) {
     return address;
   }
   return `${address.slice(0, startChars)}...${address.slice(-endChars)}`;
+}
+
+function getExplorerAddressUrl(address, network) {
+  const baseUrl =
+    network === "mainnet"
+      ? "https://zcashexplorer.app"
+      : "https://testnet.zcashexplorer.app";
+  return `${baseUrl}/address/${address}`;
 }
 
 function copyAddress(address, btnId) {
@@ -2001,6 +2011,9 @@ function displayDerivedAddresses() {
             <button id="${transparentId}" class="btn btn-sm btn-link p-0 text-muted" onclick="copyAddress('${escapeHtml(addr.transparent)}', '${transparentId}')" title="Copy address">
               <i class="bi bi-clipboard"></i>
             </button>
+            <a href="${getExplorerAddressUrl(addr.transparent, derivedAddressesNetwork)}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-link p-0 text-muted" title="View in explorer">
+              <i class="bi bi-box-arrow-up-right"></i>
+            </a>
           </div>
         </td>
         <td class="align-middle">
