@@ -194,40 +194,6 @@
                   </form>
                 </div>
               </div>
-
-              <div class="card mt-4 border-info">
-                <div class="card-header bg-info bg-opacity-10">
-                  <h6 class="mb-0 fw-semibold text-info">
-                    How Your Privacy Is Protected
-                  </h6>
-                </div>
-                <div class="card-body small">
-                  <p class="mb-2">
-                    <strong>100% Local:</strong> This application runs entirely
-                    in your browser. No data is sent to any server we control.
-                  </p>
-                  <p class="mb-2">
-                    <strong>Client-Side Decryption:</strong> Your viewing key is
-                    processed using WebAssembly and never leaves your browser.
-                  </p>
-                  <p class="mb-2">
-                    <strong>Official Zcash Libraries:</strong> We use the
-                    official Zcash Rust cryptographic libraries
-                    (<code>zcash_primitives</code>, <code>orchard</code>,
-                    <code>sapling-crypto</code>) compiled to WebAssembly.
-                  </p>
-                  <p class="mb-2">
-                    <strong>Your RPC Endpoint:</strong> Transaction data is
-                    fetched directly from the RPC endpoint you configure. Only
-                    the transaction ID is sent to the node.
-                  </p>
-                  <p class="mb-0">
-                    <strong>Open Source:</strong> This tool is open source. You
-                    can audit the code, build it yourself, or run it entirely
-                    offline.
-                  </p>
-                </div>
-              </div>
             </div>
 
             <div class="col-lg-6">
@@ -909,37 +875,33 @@
               </h6>
             </div>
             <div class="card-body small">
-              <h6 class="fw-semibold mb-2">Minimal Dependencies Philosophy</h6>
-              <p class="mb-3">
-                This project intentionally minimizes external dependencies to
-                reduce security risks. Fewer dependencies means a smaller attack
-                surface and easier security audits.
-              </p>
+              <h6 class="fw-semibold mb-2">How Your Privacy Is Protected</h6>
               <div class="row">
                 <div class="col-md-6">
                   <p class="mb-2">
                     <i class="bi bi-check-circle text-success me-1"></i>
-                    <strong>Rust:</strong> Only essential Zcash cryptographic
-                    libraries from the official
-                    <a
-                      href="https://github.com/zcash/librustzcash"
-                      target="_blank"
-                      rel="noopener"
-                      >librustzcash</a
-                    >
-                    repository.
+                    <strong>100% Local:</strong> This application runs entirely
+                    in your browser. No data is sent to any server we control.
                   </p>
                   <p class="mb-2">
                     <i class="bi bi-check-circle text-success me-1"></i>
-                    <strong>JavaScript:</strong> Vanilla JS with no frameworks.
-                    Only Bootstrap for styling.
+                    <strong>Client-Side Decryption:</strong> Your viewing key is
+                    processed using WebAssembly and never leaves your browser.
+                  </p>
+                  <p class="mb-2">
+                    <i class="bi bi-check-circle text-success me-1"></i>
+                    <strong>Your RPC Endpoint:</strong> Transaction data is
+                    fetched directly from the RPC endpoint you configure. Only
+                    the transaction ID is sent to the node.
                   </p>
                 </div>
                 <div class="col-md-6">
                   <p class="mb-2">
                     <i class="bi bi-check-circle text-success me-1"></i>
-                    <strong>No Backend:</strong> Everything runs client-side.
-                    Your keys never leave your browser.
+                    <strong>Official Zcash Libraries:</strong> We use the
+                    official Zcash Rust cryptographic libraries
+                    (<code>zcash_primitives</code>, <code>orchard</code>,
+                    <code>sapling-crypto</code>) compiled to WebAssembly.
                   </p>
                   <p class="mb-2">
                     <i class="bi bi-check-circle text-success me-1"></i>
@@ -949,16 +911,17 @@
                       target="_blank"
                       rel="noopener"
                       >GitHub</a
-                    >.
+                    >. You can audit the code, build it yourself, or run it
+                    entirely offline.
+                  </p>
+                  <p class="mb-2">
+                    <i class="bi bi-check-circle text-success me-1"></i>
+                    <strong>Minimal Dependencies:</strong> Only essential
+                    libraries to reduce attack surface. Vanilla JS with
+                    Bootstrap for styling, no heavy frameworks.
                   </p>
                 </div>
               </div>
-              <p class="text-muted mb-0 mt-2">
-                <i class="bi bi-info-circle me-1"></i>
-                We prefer implementing simple functionality ourselves rather
-                than adding large dependency trees that increase supply chain
-                attack risks.
-              </p>
             </div>
           </div>
         </div>
