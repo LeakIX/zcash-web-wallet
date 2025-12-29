@@ -3,8 +3,35 @@
 // WASM module instance
 let wasmModule = null;
 
-// API endpoint for fetching raw transactions
-const API_BASE_URL = window.location.origin + "/api";
+// LocalStorage keys
+const STORAGE_KEYS = {
+  endpoints: "zcash_viewer_endpoints",
+  selectedEndpoint: "zcash_viewer_selected_endpoint",
+};
+
+// Default RPC endpoints (users can add their own)
+const DEFAULT_ENDPOINTS = [
+  {
+    name: "Tatum - mainnet (rate limited)",
+    url: "https://zcash-mainnet.gateway.tatum.io/",
+    network: "mainnet",
+  },
+  {
+    name: "Tatum - testnet (rate limited)",
+    url: "https://zcash-testnet.gateway.tatum.io/",
+    network: "testnet",
+  },
+  {
+    name: "Local Node (mainnet)",
+    url: "http://127.0.0.1:8232",
+    network: "mainnet",
+  },
+  {
+    name: "Local Node (testnet)",
+    url: "http://127.0.0.1:18232",
+    network: "testnet",
+  },
+];
 
 // Initialize WASM module
 async function initWasm() {
@@ -21,6 +48,84 @@ async function initWasm() {
   }
 }
 
+// Endpoint management
+function loadEndpoints() {
+  const stored = localStorage.getItem(STORAGE_KEYS.endpoints);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return [...DEFAULT_ENDPOINTS];
+    }
+  }
+  return [...DEFAULT_ENDPOINTS];
+}
+
+function saveEndpoints(endpoints) {
+  localStorage.setItem(STORAGE_KEYS.endpoints, JSON.stringify(endpoints));
+}
+
+function getSelectedEndpoint() {
+  return localStorage.getItem(STORAGE_KEYS.selectedEndpoint) || "";
+}
+
+function setSelectedEndpoint(url) {
+  localStorage.setItem(STORAGE_KEYS.selectedEndpoint, url);
+}
+
+function renderEndpoints() {
+  const endpoints = loadEndpoints();
+  const select = document.getElementById("rpcEndpoint");
+  const selectedUrl = getSelectedEndpoint();
+
+  select.innerHTML = '<option value="">-- Select an endpoint --</option>';
+
+  endpoints.forEach((endpoint) => {
+    const option = document.createElement("option");
+    option.value = endpoint.url;
+    option.textContent = `${endpoint.name} (${endpoint.url})`;
+    if (endpoint.url === selectedUrl) {
+      option.selected = true;
+    }
+    select.appendChild(option);
+  });
+}
+
+function addEndpoint(url) {
+  if (!url || !url.trim()) return false;
+
+  url = url.trim();
+
+  // Basic URL validation
+  try {
+    new URL(url);
+  } catch {
+    return false;
+  }
+
+  const endpoints = loadEndpoints();
+
+  // Check for duplicates
+  if (endpoints.some((e) => e.url === url)) {
+    return false;
+  }
+
+  endpoints.push({
+    name: "Custom",
+    url: url,
+    network: "unknown",
+  });
+
+  saveEndpoints(endpoints);
+  renderEndpoints();
+
+  // Select the newly added endpoint
+  document.getElementById("rpcEndpoint").value = url;
+  setSelectedEndpoint(url);
+
+  return true;
+}
+
 // DOM Elements
 const form = document.getElementById("decryptForm");
 const viewingKeyInput = document.getElementById("viewingKey");
@@ -32,6 +137,11 @@ const resultsDiv = document.getElementById("results");
 const placeholderDiv = document.getElementById("placeholder");
 const errorAlert = document.getElementById("errorAlert");
 const errorMessage = document.getElementById("errorMessage");
+const rpcEndpointSelect = document.getElementById("rpcEndpoint");
+const newEndpointInput = document.getElementById("newEndpoint");
+const addEndpointBtn = document.getElementById("addEndpointBtn");
+const testEndpointBtn = document.getElementById("testEndpointBtn");
+const endpointStatus = document.getElementById("endpointStatus");
 
 // Validate viewing key on input
 viewingKeyInput.addEventListener("input", debounce(validateViewingKey, 300));
@@ -90,6 +200,107 @@ async function validateViewingKey() {
   }
 }
 
+// RPC endpoint selection
+rpcEndpointSelect.addEventListener("change", () => {
+  setSelectedEndpoint(rpcEndpointSelect.value);
+  updateEndpointStatus();
+});
+
+// Add endpoint button
+addEndpointBtn.addEventListener("click", () => {
+  const url = newEndpointInput.value;
+  if (addEndpoint(url)) {
+    newEndpointInput.value = "";
+    updateEndpointStatus("Endpoint added successfully", "success");
+  } else {
+    updateEndpointStatus("Invalid URL or endpoint already exists", "danger");
+  }
+});
+
+// Test endpoint button
+testEndpointBtn.addEventListener("click", async () => {
+  await testEndpoint();
+});
+
+async function testEndpoint() {
+  const rpcEndpoint = rpcEndpointSelect.value;
+
+  if (!rpcEndpoint) {
+    updateEndpointStatus("Please select an endpoint first", "warning");
+    return;
+  }
+
+  // Show testing status
+  testEndpointBtn.disabled = true;
+  const originalContent = testEndpointBtn.innerHTML;
+  testEndpointBtn.innerHTML =
+    '<span class="spinner-border spinner-border-sm" role="status"></span>';
+  updateEndpointStatus("Testing connection...", "info");
+
+  try {
+    const rpcRequest = {
+      jsonrpc: "1.0",
+      id: "test",
+      method: "getblockchaininfo",
+      params: [],
+    };
+
+    const response = await fetch(rpcEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(rpcRequest),
+    });
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error("Rate limited - please wait a moment and try again");
+      }
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    if (data.error) {
+      throw new Error(data.error.message || "RPC error");
+    }
+
+    const chain = data.result.chain;
+    const blocks = data.result.blocks;
+    updateEndpointStatus(
+      `Connected: ${chain} network, block height ${blocks.toLocaleString()}`,
+      "success",
+      5000
+    );
+  } catch (error) {
+    let errorMsg = error.message;
+    if (
+      error.message.includes("Failed to fetch") ||
+      error.message.includes("NetworkError")
+    ) {
+      errorMsg = "Connection failed (CORS issue or endpoint unreachable)";
+    }
+    updateEndpointStatus(`Error: ${errorMsg}`, "danger");
+  } finally {
+    testEndpointBtn.disabled = false;
+    testEndpointBtn.innerHTML = originalContent;
+  }
+}
+
+function updateEndpointStatus(message, type, duration = 3000) {
+  if (message) {
+    endpointStatus.innerHTML = `<span class="text-${type}">${message}</span>`;
+    if (duration > 0) {
+      setTimeout(() => {
+        endpointStatus.innerHTML = "";
+      }, duration);
+    }
+  } else {
+    endpointStatus.innerHTML = "";
+  }
+}
+
 // Form submission
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -100,6 +311,12 @@ async function decryptTransaction() {
   const viewingKey = viewingKeyInput.value.trim();
   const txid = txidInput.value.trim();
   const network = networkSelect.value;
+  const rpcEndpoint = rpcEndpointSelect.value;
+
+  if (!rpcEndpoint) {
+    showError("Please select an RPC endpoint.");
+    return;
+  }
 
   if (!viewingKey || !txid) {
     showError("Please enter both a viewing key and transaction ID.");
@@ -123,17 +340,23 @@ async function decryptTransaction() {
   hideError();
 
   try {
-    // Fetch raw transaction from backend
-    const rawTx = await fetchRawTransaction(txid, network);
+    // Fetch raw transaction from RPC endpoint
+    const rawTx = await fetchRawTransaction(rpcEndpoint, txid);
 
     if (!rawTx) {
-      showError("Failed to fetch transaction. Please check the transaction ID.");
+      showError(
+        "Failed to fetch transaction. Please check the transaction ID and RPC endpoint."
+      );
       setLoading(false);
       return;
     }
 
     // Decrypt transaction using WASM
-    const resultJson = wasmModule.decrypt_transaction(rawTx, viewingKey, network);
+    const resultJson = wasmModule.decrypt_transaction(
+      rawTx,
+      viewingKey,
+      network
+    );
     const result = JSON.parse(resultJson);
 
     if (result.success && result.transaction) {
@@ -149,21 +372,51 @@ async function decryptTransaction() {
   }
 }
 
-async function fetchRawTransaction(txid, network) {
+async function fetchRawTransaction(rpcEndpoint, txid) {
+  const rpcRequest = {
+    jsonrpc: "1.0",
+    id: "zcash-viewer",
+    method: "getrawtransaction",
+    params: [txid, 0],
+  };
+
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/transaction/${txid}?network=${network}`
-    );
+    const response = await fetch(rpcEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(rpcRequest),
+    });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.detail || `HTTP ${response.status}`);
+      if (response.status === 429) {
+        throw new Error("Rate limited - please wait a moment and try again");
+      }
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json();
-    return data.hex;
+
+    if (data.error) {
+      throw new Error(data.error.message || "RPC error");
+    }
+
+    return data.result;
   } catch (error) {
     console.error("Failed to fetch transaction:", error);
+
+    // Provide helpful error message for CORS issues
+    if (
+      error.message.includes("Failed to fetch") ||
+      error.message.includes("NetworkError")
+    ) {
+      throw new Error(
+        "Network error. This may be a CORS issue. " +
+          "Try using a local node with CORS enabled or a CORS proxy."
+      );
+    }
+
     throw error;
   }
 }
@@ -324,7 +577,57 @@ function hideError() {
   errorAlert.classList.add("d-none");
 }
 
+// Theme management
+const THEME_KEY = "zcash_viewer_theme";
+
+function getStoredTheme() {
+  return localStorage.getItem(THEME_KEY);
+}
+
+function setStoredTheme(theme) {
+  localStorage.setItem(THEME_KEY, theme);
+}
+
+function getPreferredTheme() {
+  const stored = getStoredTheme();
+  if (stored) {
+    return stored;
+  }
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+
+function setTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  updateThemeIcon(theme);
+  setStoredTheme(theme);
+}
+
+function updateThemeIcon(theme) {
+  const icon = document.getElementById("themeIcon");
+  if (icon) {
+    icon.className = theme === "dark" ? "bi bi-sun-fill" : "bi bi-moon-fill";
+  }
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute("data-theme");
+  const next = current === "dark" ? "light" : "dark";
+  setTheme(next);
+}
+
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", async () => {
+  // Set initial theme
+  setTheme(getPreferredTheme());
+
+  // Theme toggle button
+  const themeToggle = document.getElementById("themeToggle");
+  if (themeToggle) {
+    themeToggle.addEventListener("click", toggleTheme);
+  }
+
+  renderEndpoints();
   await initWasm();
 });

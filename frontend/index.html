@@ -10,54 +10,81 @@
       integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
       crossorigin="anonymous"
     />
-    <style>
-      .mono {
-        font-family: "SF Mono", "Monaco", "Inconsolata", "Roboto Mono",
-          monospace;
-        font-size: 0.875rem;
-      }
-      .result-section {
-        margin-top: 1rem;
-      }
-      .output-card {
-        background-color: #f8f9fa;
-        border-left: 4px solid #6c757d;
-      }
-      .output-card.sapling {
-        border-left-color: #0d6efd;
-      }
-      .output-card.orchard {
-        border-left-color: #198754;
-      }
-      .output-card.transparent {
-        border-left-color: #ffc107;
-      }
-      .key-info {
-        font-size: 0.875rem;
-      }
-      .loading-spinner {
-        display: none;
-      }
-      .loading .loading-spinner {
-        display: inline-block;
-      }
-      .loading .btn-text {
-        display: none;
-      }
-    </style>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
+    <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
     <div class="container py-5">
-      <header class="mb-5">
-        <h1 class="display-5 fw-bold">Zcash Shielded Transaction Viewer</h1>
-        <p class="lead text-muted">
-          Decrypt and view shielded transaction details using your viewing key.
-          All decryption happens locally in your browser.
-        </p>
+      <header class="mb-5 d-flex justify-content-between align-items-start">
+        <div>
+          <h1 class="display-5 fw-bold">Zcash Shielded Transaction Viewer</h1>
+          <p class="lead text-muted">
+            Decrypt and view shielded transaction details using your viewing
+            key. Everything runs locally in your browser.
+          </p>
+        </div>
+        <button
+          class="theme-toggle btn btn-outline-secondary"
+          id="themeToggle"
+          title="Toggle theme"
+        >
+          <i class="bi bi-moon-fill" id="themeIcon"></i>
+        </button>
       </header>
 
       <div class="row">
         <div class="col-lg-6">
+          <div class="card shadow-sm mb-4">
+            <div class="card-header">
+              <h6 class="mb-0 fw-semibold">RPC Endpoint</h6>
+            </div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label for="rpcEndpoint" class="form-label"
+                  >Select or add a Zcash node endpoint</label
+                >
+                <div class="input-group">
+                  <select class="form-select mono" id="rpcEndpoint">
+                    <option value="">-- Select an endpoint --</option>
+                  </select>
+                  <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    id="testEndpointBtn"
+                    title="Test connection"
+                  >
+                    <i class="bi bi-lightning-charge"></i> Test
+                  </button>
+                </div>
+              </div>
+              <div class="mb-3">
+                <div class="input-group">
+                  <input
+                    type="text"
+                    class="form-control mono"
+                    id="newEndpoint"
+                    placeholder="https://your-node:8232"
+                  />
+                  <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    id="addEndpointBtn"
+                  >
+                    Add
+                  </button>
+                </div>
+                <div class="form-text">
+                  Add a custom RPC endpoint. Requires CORS headers or a local
+                  proxy.
+                </div>
+              </div>
+              <div id="endpointStatus" class="small"></div>
+            </div>
+          </div>
+
           <div class="card shadow-sm">
             <div class="card-body">
               <form id="decryptForm">
@@ -123,9 +150,12 @@
             </div>
             <div class="card-body small">
               <p class="mb-2">
-                <strong>100% Client-Side Decryption:</strong> Your viewing key
-                is processed entirely in your browser using WebAssembly. It is
-                never transmitted to any server.
+                <strong>100% Local:</strong> This application runs entirely in
+                your browser. No data is sent to any server we control.
+              </p>
+              <p class="mb-2">
+                <strong>Client-Side Decryption:</strong> Your viewing key is
+                processed using WebAssembly and never leaves your browser.
               </p>
               <p class="mb-2">
                 <strong>Official Zcash Libraries:</strong> We use the official
@@ -134,9 +164,9 @@
                 <code>sapling-crypto</code>) compiled to WebAssembly.
               </p>
               <p class="mb-2">
-                <strong>Minimal Backend:</strong> The only server communication
-                is fetching the raw transaction data from a Zcash node. Your
-                viewing key is never sent.
+                <strong>Your RPC Endpoint:</strong> Transaction data is fetched
+                directly from the RPC endpoint you configure. Only the
+                transaction ID is sent to the node.
               </p>
               <p class="mb-0">
                 <strong>Open Source:</strong> This tool is open source. You can
@@ -205,10 +235,52 @@
     </div>
 
     <footer class="container py-4 border-top mt-5">
-      <p class="text-muted small text-center mb-0">
-        Zcash Shielded Transaction Viewer &mdash; Client-side decryption using
-        official Zcash Rust libraries
-      </p>
+      <div
+        class="d-flex flex-column flex-sm-row justify-content-between align-items-center"
+      >
+        <p class="text-muted small mb-2 mb-sm-0">
+          Zcash Shielded Transaction Viewer &mdash; Client-side decryption using
+          official Zcash Rust libraries
+        </p>
+        <div class="d-flex gap-3">
+          <a
+            href="https://github.com/dannywillems"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-muted"
+            title="GitHub"
+          >
+            <i class="bi bi-github fs-5"></i>
+          </a>
+          <a
+            href="https://twitter.com/dwillems42"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-muted"
+            title="Twitter"
+          >
+            <i class="bi bi-twitter-x fs-5"></i>
+          </a>
+          <a
+            href="https://linkedin.com/in/bedannywillems"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-muted"
+            title="LinkedIn"
+          >
+            <i class="bi bi-linkedin fs-5"></i>
+          </a>
+          <a
+            href="https://dannywillems.github.io"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-muted"
+            title="Website"
+          >
+            <i class="bi bi-globe fs-5"></i>
+          </a>
+        </div>
+      </div>
     </footer>
 
     <script
