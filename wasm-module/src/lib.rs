@@ -27,8 +27,9 @@ use zcash_protocol::consensus::{Network, NetworkType};
 pub use zcash_wallet_core::{
     DecryptedOrchardAction, DecryptedSaplingOutput, DecryptedTransaction, DecryptionResult,
     NetworkKind, NoteCollection, Pool, ScanResult, ScanTransactionResult, ScannedNote,
-    ScannedTransparentOutput, SpentNullifier, StorageResult, StoredNote, TransparentInput,
-    TransparentOutput, TransparentSpend, ViewingKeyInfo, WalletResult,
+    ScannedTransparentOutput, SpentNullifier, StorageResult, StoredNote, StoredWallet,
+    TransparentInput, TransparentOutput, TransparentSpend, ViewingKeyInfo, WalletCollection,
+    WalletResult,
 };
 
 /// Log to browser console
@@ -322,6 +323,59 @@ fn parse_network(network_str: &str) -> Network {
         "mainnet" | "main" => Network::MainNetwork,
         _ => Network::TestNetwork,
     }
+}
+
+/// Format a Unix timestamp (seconds) as ISO 8601 string.
+/// This is a simple implementation that doesn't require chrono.
+fn format_iso8601(timestamp_secs: u64) -> String {
+    // Calculate date components from Unix timestamp
+    // Days since Unix epoch (1970-01-01)
+    let days = timestamp_secs / 86400;
+    let remaining_secs = timestamp_secs % 86400;
+
+    let hours = remaining_secs / 3600;
+    let minutes = (remaining_secs % 3600) / 60;
+    let seconds = remaining_secs % 60;
+
+    // Calculate year, month, day from days since epoch
+    // This is a simplified calculation that works for dates from 1970-2099
+    let mut year = 1970u64;
+    let mut remaining_days = days;
+
+    loop {
+        let days_in_year = if is_leap_year(year) { 366 } else { 365 };
+        if remaining_days < days_in_year {
+            break;
+        }
+        remaining_days -= days_in_year;
+        year += 1;
+    }
+
+    let days_in_months: [u64; 12] = if is_leap_year(year) {
+        [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    } else {
+        [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    };
+
+    let mut month = 1u64;
+    for days_in_month in days_in_months.iter() {
+        if remaining_days < *days_in_month {
+            break;
+        }
+        remaining_days -= days_in_month;
+        month += 1;
+    }
+
+    let day = remaining_days + 1;
+
+    format!(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
+        year, month, day, hours, minutes, seconds
+    )
+}
+
+fn is_leap_year(year: u64) -> bool {
+    (year.is_multiple_of(4) && !year.is_multiple_of(100)) || year.is_multiple_of(400)
 }
 
 /// Generate a new wallet with a random seed phrase
@@ -1038,6 +1092,338 @@ pub fn get_notes_for_wallet(notes_json: &str, wallet_id: &str) -> String {
         notes: wallet_notes,
         added: None,
         marked_count: None,
+        error: None,
+    })
+    .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string())
+}
+
+// ============================================================================
+// Wallet Storage Operations
+// ============================================================================
+
+/// Result type for wallet operations that modify the collection
+#[derive(serde::Serialize, serde::Deserialize)]
+struct WalletOperationResult {
+    success: bool,
+    wallets: Vec<StoredWallet>,
+    wallet: Option<StoredWallet>,
+    error: Option<String>,
+}
+
+/// Create a new stored wallet from a WalletResult.
+///
+/// Generates a unique ID and timestamp, and creates a StoredWallet
+/// ready for persistence.
+///
+/// # Arguments
+///
+/// * `wallet_result_json` - JSON of WalletResult from generate/restore
+/// * `alias` - User-friendly name for the wallet
+/// * `timestamp_ms` - Current timestamp in milliseconds (from JavaScript Date.now())
+///
+/// # Returns
+///
+/// JSON string containing the StoredWallet or an error.
+#[wasm_bindgen]
+pub fn create_stored_wallet(wallet_result_json: &str, alias: &str, timestamp_ms: u64) -> String {
+    let wallet_result: WalletResult = match serde_json::from_str(wallet_result_json) {
+        Ok(w) => w,
+        Err(e) => {
+            return serde_json::to_string(&StorageResult::<StoredWallet>::err(format!(
+                "Failed to parse wallet result: {}",
+                e
+            )))
+            .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string());
+        }
+    };
+
+    if !wallet_result.success {
+        return serde_json::to_string(&StorageResult::<StoredWallet>::err(
+            wallet_result
+                .error
+                .unwrap_or_else(|| "Wallet generation failed".to_string()),
+        ))
+        .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string());
+    }
+
+    // Validate required fields
+    let seed_phrase = match &wallet_result.seed_phrase {
+        Some(s) => s.clone(),
+        None => {
+            return serde_json::to_string(&StorageResult::<StoredWallet>::err(
+                "Missing seed phrase",
+            ))
+            .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string());
+        }
+    };
+
+    let unified_address = match &wallet_result.unified_address {
+        Some(a) => a.clone(),
+        None => {
+            return serde_json::to_string(&StorageResult::<StoredWallet>::err(
+                "Missing unified address",
+            ))
+            .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string());
+        }
+    };
+
+    let transparent_address = match &wallet_result.transparent_address {
+        Some(a) => a.clone(),
+        None => {
+            return serde_json::to_string(&StorageResult::<StoredWallet>::err(
+                "Missing transparent address",
+            ))
+            .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string());
+        }
+    };
+
+    let ufvk = match &wallet_result.unified_full_viewing_key {
+        Some(k) => k.clone(),
+        None => {
+            return serde_json::to_string(&StorageResult::<StoredWallet>::err(
+                "Missing viewing key",
+            ))
+            .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string());
+        }
+    };
+
+    // Generate ID and timestamp
+    let id = format!("wallet_{}", timestamp_ms);
+
+    // Convert timestamp to ISO 8601
+    // JavaScript should pass the ISO timestamp directly, but we'll create a simple one from ms
+    let secs = timestamp_ms / 1000;
+    let created_at = format_iso8601(secs);
+
+    let wallet = StoredWallet {
+        id,
+        alias: alias.to_string(),
+        network: wallet_result.network,
+        seed_phrase,
+        account_index: wallet_result.account_index,
+        unified_address,
+        transparent_address,
+        unified_full_viewing_key: ufvk,
+        created_at,
+    };
+
+    serde_json::to_string(&StorageResult::ok(wallet))
+        .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string())
+}
+
+/// Add a wallet to the wallets list.
+///
+/// Checks for duplicate aliases (case-insensitive) before adding.
+///
+/// # Arguments
+///
+/// * `wallets_json` - JSON array of existing StoredWallets
+/// * `wallet_json` - JSON of the StoredWallet to add
+///
+/// # Returns
+///
+/// JSON containing the updated wallets array or an error if alias exists.
+#[wasm_bindgen]
+pub fn add_wallet_to_list(wallets_json: &str, wallet_json: &str) -> String {
+    let mut collection: WalletCollection = match serde_json::from_str(wallets_json) {
+        Ok(c) => c,
+        Err(_) => {
+            // Try parsing as a plain array
+            match serde_json::from_str::<Vec<StoredWallet>>(wallets_json) {
+                Ok(wallets) => WalletCollection { wallets },
+                Err(e) => {
+                    return serde_json::to_string(&WalletOperationResult {
+                        success: false,
+                        wallets: vec![],
+                        wallet: None,
+                        error: Some(format!("Failed to parse wallets: {}", e)),
+                    })
+                    .unwrap_or_else(|_| {
+                        r#"{"success":false,"error":"Serialization error"}"#.to_string()
+                    });
+                }
+            }
+        }
+    };
+
+    let wallet: StoredWallet = match serde_json::from_str(wallet_json) {
+        Ok(w) => w,
+        Err(e) => {
+            return serde_json::to_string(&WalletOperationResult {
+                success: false,
+                wallets: collection.wallets,
+                wallet: None,
+                error: Some(format!("Failed to parse wallet: {}", e)),
+            })
+            .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string());
+        }
+    };
+
+    // Check for duplicate alias
+    if let Err(e) = collection.add(wallet.clone()) {
+        return serde_json::to_string(&WalletOperationResult {
+            success: false,
+            wallets: collection.wallets,
+            wallet: None,
+            error: Some(e),
+        })
+        .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string());
+    }
+
+    serde_json::to_string(&WalletOperationResult {
+        success: true,
+        wallets: collection.wallets,
+        wallet: Some(wallet),
+        error: None,
+    })
+    .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string())
+}
+
+/// Check if a wallet alias already exists (case-insensitive).
+///
+/// # Arguments
+///
+/// * `wallets_json` - JSON array of StoredWallets
+/// * `alias` - The alias to check
+///
+/// # Returns
+///
+/// `true` if the alias exists, `false` otherwise.
+#[wasm_bindgen]
+pub fn wallet_alias_exists(wallets_json: &str, alias: &str) -> bool {
+    let collection: WalletCollection = match serde_json::from_str(wallets_json) {
+        Ok(c) => c,
+        Err(_) => match serde_json::from_str::<Vec<StoredWallet>>(wallets_json) {
+            Ok(wallets) => WalletCollection { wallets },
+            Err(_) => return false,
+        },
+    };
+
+    collection.alias_exists(alias)
+}
+
+/// Delete a wallet from the wallets list by ID.
+///
+/// # Arguments
+///
+/// * `wallets_json` - JSON array of StoredWallets
+/// * `wallet_id` - The ID of the wallet to delete
+///
+/// # Returns
+///
+/// JSON containing the updated wallets array.
+#[wasm_bindgen]
+pub fn delete_wallet_from_list(wallets_json: &str, wallet_id: &str) -> String {
+    let mut collection: WalletCollection = match serde_json::from_str(wallets_json) {
+        Ok(c) => c,
+        Err(_) => match serde_json::from_str::<Vec<StoredWallet>>(wallets_json) {
+            Ok(wallets) => WalletCollection { wallets },
+            Err(e) => {
+                return serde_json::to_string(&WalletOperationResult {
+                    success: false,
+                    wallets: vec![],
+                    wallet: None,
+                    error: Some(format!("Failed to parse wallets: {}", e)),
+                })
+                .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string());
+            }
+        },
+    };
+
+    let deleted = collection.delete(wallet_id);
+
+    serde_json::to_string(&WalletOperationResult {
+        success: deleted,
+        wallets: collection.wallets,
+        wallet: None,
+        error: if deleted {
+            None
+        } else {
+            Some(format!("Wallet not found: {}", wallet_id))
+        },
+    })
+    .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string())
+}
+
+/// Get a wallet by ID.
+///
+/// # Arguments
+///
+/// * `wallets_json` - JSON array of StoredWallets
+/// * `wallet_id` - The ID of the wallet to find
+///
+/// # Returns
+///
+/// JSON containing the wallet if found, or an error.
+#[wasm_bindgen]
+pub fn get_wallet_by_id(wallets_json: &str, wallet_id: &str) -> String {
+    let collection: WalletCollection = match serde_json::from_str(wallets_json) {
+        Ok(c) => c,
+        Err(_) => match serde_json::from_str::<Vec<StoredWallet>>(wallets_json) {
+            Ok(wallets) => WalletCollection { wallets },
+            Err(e) => {
+                return serde_json::to_string(&WalletOperationResult {
+                    success: false,
+                    wallets: vec![],
+                    wallet: None,
+                    error: Some(format!("Failed to parse wallets: {}", e)),
+                })
+                .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string());
+            }
+        },
+    };
+
+    match collection.get_by_id(wallet_id) {
+        Some(wallet) => serde_json::to_string(&WalletOperationResult {
+            success: true,
+            wallets: vec![],
+            wallet: Some(wallet.clone()),
+            error: None,
+        })
+        .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string()),
+        None => serde_json::to_string(&WalletOperationResult {
+            success: false,
+            wallets: vec![],
+            wallet: None,
+            error: Some(format!("Wallet not found: {}", wallet_id)),
+        })
+        .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string()),
+    }
+}
+
+/// Get all wallets from the collection.
+///
+/// Useful for listing wallets in the UI.
+///
+/// # Arguments
+///
+/// * `wallets_json` - JSON array of StoredWallets
+///
+/// # Returns
+///
+/// JSON containing the wallets array.
+#[wasm_bindgen]
+pub fn get_all_wallets(wallets_json: &str) -> String {
+    let collection: WalletCollection = match serde_json::from_str(wallets_json) {
+        Ok(c) => c,
+        Err(_) => match serde_json::from_str::<Vec<StoredWallet>>(wallets_json) {
+            Ok(wallets) => WalletCollection { wallets },
+            Err(e) => {
+                return serde_json::to_string(&WalletOperationResult {
+                    success: false,
+                    wallets: vec![],
+                    wallet: None,
+                    error: Some(format!("Failed to parse wallets: {}", e)),
+                })
+                .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string());
+            }
+        },
+    };
+
+    serde_json::to_string(&WalletOperationResult {
+        success: true,
+        wallets: collection.wallets,
+        wallet: None,
         error: None,
     })
     .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string())
