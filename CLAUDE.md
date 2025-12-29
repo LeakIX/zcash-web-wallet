@@ -95,6 +95,7 @@ Browser                                        Zcash Node
 ### Pre-Commit Checklist
 
 Before committing and pushing changes:
+
 1. Run `make test` and ensure all tests pass (includes unit tests and CLI e2e tests)
 2. Run `make format` to format all code
 3. Run `make lint` to check for linting issues

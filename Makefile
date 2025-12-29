@@ -107,9 +107,9 @@ format-toml: ## Format TOML files with taplo
 	taplo format
 
 .PHONY: format-js
-format-js: ## Format JavaScript/HTML with Prettier
-	@echo "Formatting JavaScript/HTML files..."
-	npx prettier --write "frontend/**/*.{js,html,json}"
+format-js: ## Format JavaScript/HTML/Markdown with Prettier
+	@echo "Formatting JavaScript/HTML/Markdown files..."
+	npx prettier --write "frontend/**/*.{js,html,json}" "*.md"
 
 # =============================================================================
 # Format Checking (for CI)
@@ -130,9 +130,9 @@ format-check-toml: ## Check TOML formatting with taplo
 	taplo format --check
 
 .PHONY: format-check-js
-format-check-js: ## Check JavaScript/HTML formatting with Prettier
-	@echo "Checking JavaScript/HTML formatting..."
-	npx prettier --check "frontend/**/*.{js,html,json}"
+format-check-js: ## Check JavaScript/HTML/Markdown formatting with Prettier
+	@echo "Checking JavaScript/HTML/Markdown formatting..."
+	npx prettier --check "frontend/**/*.{js,html,json}" "*.md"
 
 # =============================================================================
 # Linting
