@@ -298,14 +298,14 @@ pub fn derive_transparent_addresses(
     let mut addresses = Vec::with_capacity(count as usize);
 
     // Get transparent addresses
-    if let Some(tfvk) = ufvk.transparent() {
-        if let Ok(ivk) = tfvk.derive_external_ivk() {
-            for i in start_index..(start_index + count) {
-                if let Some(child_index) = NonHardenedChildIndex::from_index(i) {
-                    if let Ok(addr) = ivk.derive_address(child_index) {
-                        addresses.push(addr.encode(&network));
-                    }
-                }
+    if let Some(tfvk) = ufvk.transparent()
+        && let Ok(ivk) = tfvk.derive_external_ivk()
+    {
+        for i in start_index..(start_index + count) {
+            if let Some(child_index) = NonHardenedChildIndex::from_index(i)
+                && let Ok(addr) = ivk.derive_address(child_index)
+            {
+                addresses.push(addr.encode(&network));
             }
         }
     }

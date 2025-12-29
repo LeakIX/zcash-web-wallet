@@ -814,6 +814,13 @@ function getSelectedWallet() {
   return id ? getWallet(id) : null;
 }
 
+function walletAliasExists(alias) {
+  if (!alias) return false;
+  const wallets = loadWallets();
+  const normalizedAlias = alias.toLowerCase().trim();
+  return wallets.some((w) => w.alias.toLowerCase().trim() === normalizedAlias);
+}
+
 // ===========================================================================
 // Transaction Scanner
 // ===========================================================================
@@ -1447,6 +1454,20 @@ function saveWalletToBrowser() {
   const generateAlias = document.getElementById("walletAlias")?.value.trim();
   const restoreAlias = document.getElementById("restoreAlias")?.value.trim();
   const alias = currentWalletData._alias || generateAlias || restoreAlias || "";
+
+  // Check for empty alias
+  if (!alias) {
+    showWalletError("Please enter a wallet name");
+    return;
+  }
+
+  // Check for duplicate alias (case-insensitive)
+  if (walletAliasExists(alias)) {
+    showWalletError(
+      `A wallet named "${alias}" already exists. Please choose a different name.`
+    );
+    return;
+  }
 
   // Derive transparent and unified addresses for scanning
   let transparentAddresses = [];
