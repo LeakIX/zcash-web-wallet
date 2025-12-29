@@ -1,7 +1,7 @@
-//! Wallet derivation for Zcash testnet.
+//! Wallet derivation for Zcash.
 //!
 //! This module provides functions to generate and restore Zcash wallets
-//! from BIP39 seed phrases.
+//! from BIP39 seed phrases. Supports both mainnet and testnet.
 
 use bip39::{Language, Mnemonic};
 use serde::{Deserialize, Serialize};
@@ -33,7 +33,7 @@ pub enum WalletError {
 pub struct WalletInfo {
     /// The 24-word BIP39 seed phrase.
     pub seed_phrase: String,
-    /// The network (always "testnet" for now).
+    /// The network ("mainnet" or "testnet").
     pub network: String,
     /// The unified address containing all receiver types.
     pub unified_address: String,
@@ -43,23 +43,32 @@ pub struct WalletInfo {
     pub unified_full_viewing_key: String,
 }
 
+/// Get network name string from Network enum.
+fn network_name(network: Network) -> &'static str {
+    match network {
+        Network::MainNetwork => "mainnet",
+        Network::TestNetwork => "testnet",
+    }
+}
+
 /// Generate a new wallet with a random seed phrase.
 ///
 /// # Arguments
 ///
 /// * `entropy` - 32 bytes of random entropy for generating the mnemonic.
+/// * `network` - The network to use (MainNetwork or TestNetwork).
 ///
 /// # Returns
 ///
 /// A `WalletInfo` containing the seed phrase and derived addresses.
-pub fn generate_wallet(entropy: &[u8; 32]) -> Result<WalletInfo, WalletError> {
+pub fn generate_wallet(entropy: &[u8; 32], network: Network) -> Result<WalletInfo, WalletError> {
     let mnemonic = Mnemonic::from_entropy_in(Language::English, entropy)
         .map_err(|e| WalletError::MnemonicGeneration(e.to_string()))?;
 
     let seed_phrase = mnemonic.to_string();
     let seed = mnemonic.to_seed("");
 
-    derive_wallet(&seed, seed_phrase)
+    derive_wallet(&seed, seed_phrase, network)
 }
 
 /// Restore a wallet from an existing seed phrase.
@@ -67,16 +76,17 @@ pub fn generate_wallet(entropy: &[u8; 32]) -> Result<WalletInfo, WalletError> {
 /// # Arguments
 ///
 /// * `seed_phrase` - A valid 24-word BIP39 mnemonic.
+/// * `network` - The network to use (MainNetwork or TestNetwork).
 ///
 /// # Returns
 ///
 /// A `WalletInfo` containing the seed phrase and derived addresses.
-pub fn restore_wallet(seed_phrase: &str) -> Result<WalletInfo, WalletError> {
+pub fn restore_wallet(seed_phrase: &str, network: Network) -> Result<WalletInfo, WalletError> {
     let mnemonic = Mnemonic::parse_in_normalized(Language::English, seed_phrase.trim())
         .map_err(|e| WalletError::InvalidSeedPhrase(e.to_string()))?;
 
     let seed = mnemonic.to_seed("");
-    derive_wallet(&seed, mnemonic.to_string())
+    derive_wallet(&seed, mnemonic.to_string(), network)
 }
 
 /// Derive wallet addresses and keys from a seed.
@@ -85,12 +95,16 @@ pub fn restore_wallet(seed_phrase: &str) -> Result<WalletInfo, WalletError> {
 ///
 /// * `seed` - The 64-byte seed derived from the mnemonic.
 /// * `seed_phrase` - The original seed phrase string.
+/// * `network` - The network to derive addresses for.
 ///
 /// # Returns
 ///
 /// A `WalletInfo` containing the seed phrase and derived addresses.
-pub fn derive_wallet(seed: &[u8], seed_phrase: String) -> Result<WalletInfo, WalletError> {
-    let network = Network::TestNetwork;
+pub fn derive_wallet(
+    seed: &[u8],
+    seed_phrase: String,
+    network: Network,
+) -> Result<WalletInfo, WalletError> {
     let account = AccountId::ZERO;
 
     // Create UnifiedSpendingKey from seed
@@ -119,7 +133,7 @@ pub fn derive_wallet(seed: &[u8], seed_phrase: String) -> Result<WalletInfo, Wal
 
     Ok(WalletInfo {
         seed_phrase,
-        network: "testnet".to_string(),
+        network: network_name(network).to_string(),
         unified_address: ua_encoded,
         transparent_address,
         unified_full_viewing_key: ufvk_encoded,
@@ -134,9 +148,11 @@ mod tests {
     const TEST_SEED_PHRASE: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art";
 
     #[test]
-    fn test_derive_wallet_is_deterministic() {
-        let wallet1 = restore_wallet(TEST_SEED_PHRASE).expect("wallet derivation should succeed");
-        let wallet2 = restore_wallet(TEST_SEED_PHRASE).expect("wallet derivation should succeed");
+    fn test_derive_wallet_is_deterministic_testnet() {
+        let wallet1 = restore_wallet(TEST_SEED_PHRASE, Network::TestNetwork)
+            .expect("wallet derivation should succeed");
+        let wallet2 = restore_wallet(TEST_SEED_PHRASE, Network::TestNetwork)
+            .expect("wallet derivation should succeed");
 
         assert_eq!(wallet1.unified_address, wallet2.unified_address);
         assert_eq!(wallet1.transparent_address, wallet2.transparent_address);
@@ -147,10 +163,12 @@ mod tests {
     }
 
     #[test]
-    fn test_derive_wallet_produces_expected_addresses() {
-        let wallet = restore_wallet(TEST_SEED_PHRASE).expect("wallet derivation should succeed");
+    fn test_derive_wallet_testnet_addresses() {
+        let wallet = restore_wallet(TEST_SEED_PHRASE, Network::TestNetwork)
+            .expect("wallet derivation should succeed");
 
         // Verify addresses are non-empty and have expected prefixes for testnet
+        assert_eq!(wallet.network, "testnet");
         assert!(
             wallet.unified_address.starts_with("utest"),
             "unified address should start with 'utest' for testnet"
@@ -170,10 +188,36 @@ mod tests {
     }
 
     #[test]
-    fn test_derive_wallet_known_vector() {
+    fn test_derive_wallet_mainnet_addresses() {
+        let wallet = restore_wallet(TEST_SEED_PHRASE, Network::MainNetwork)
+            .expect("wallet derivation should succeed");
+
+        // Verify addresses are non-empty and have expected prefixes for mainnet
+        assert_eq!(wallet.network, "mainnet");
+        assert!(
+            wallet.unified_address.starts_with("u1"),
+            "unified address should start with 'u1' for mainnet"
+        );
+        assert!(
+            wallet
+                .transparent_address
+                .as_ref()
+                .map(|s| s.starts_with("t1"))
+                .unwrap_or(false),
+            "transparent address should start with 't1' for mainnet"
+        );
+        assert!(
+            wallet.unified_full_viewing_key.starts_with("uview1"),
+            "UFVK should start with 'uview1' for mainnet"
+        );
+    }
+
+    #[test]
+    fn test_derive_wallet_known_vector_testnet() {
         // This test uses a known seed and verifies exact output
         // If this test fails after a library update, it indicates a breaking change
-        let wallet = restore_wallet(TEST_SEED_PHRASE).expect("wallet derivation should succeed");
+        let wallet = restore_wallet(TEST_SEED_PHRASE, Network::TestNetwork)
+            .expect("wallet derivation should succeed");
 
         // These are the expected values for the standard BIP39 test vector
         // "abandon abandon ... art" on Zcash testnet
@@ -192,11 +236,13 @@ mod tests {
 
     #[test]
     fn test_different_seeds_produce_different_wallets() {
-        let wallet1 = restore_wallet(TEST_SEED_PHRASE).expect("wallet derivation should succeed");
+        let wallet1 = restore_wallet(TEST_SEED_PHRASE, Network::TestNetwork)
+            .expect("wallet derivation should succeed");
 
         // Different seed phrase
         let different_seed = "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo vote";
-        let wallet2 = restore_wallet(different_seed).expect("wallet derivation should succeed");
+        let wallet2 = restore_wallet(different_seed, Network::TestNetwork)
+            .expect("wallet derivation should succeed");
 
         assert_ne!(
             wallet1.unified_address, wallet2.unified_address,
@@ -213,19 +259,58 @@ mod tests {
     }
 
     #[test]
+    fn test_same_seed_different_networks() {
+        let testnet_wallet = restore_wallet(TEST_SEED_PHRASE, Network::TestNetwork)
+            .expect("wallet derivation should succeed");
+        let mainnet_wallet = restore_wallet(TEST_SEED_PHRASE, Network::MainNetwork)
+            .expect("wallet derivation should succeed");
+
+        // Same seed should produce different addresses on different networks
+        assert_ne!(
+            testnet_wallet.unified_address, mainnet_wallet.unified_address,
+            "same seed should produce different addresses on different networks"
+        );
+        assert_ne!(
+            testnet_wallet.transparent_address, mainnet_wallet.transparent_address,
+            "same seed should produce different transparent addresses on different networks"
+        );
+    }
+
+    #[test]
     fn test_restore_invalid_seed_fails() {
-        let result = restore_wallet("invalid seed phrase");
+        let result = restore_wallet("invalid seed phrase", Network::TestNetwork);
         assert!(result.is_err(), "should fail with invalid seed phrase");
     }
 
     #[test]
-    fn test_generate_wallet_produces_valid_wallet() {
+    fn test_generate_wallet_testnet() {
         let entropy = [0u8; 32]; // Deterministic for testing
-        let wallet = generate_wallet(&entropy).expect("wallet generation should succeed");
+        let wallet = generate_wallet(&entropy, Network::TestNetwork)
+            .expect("wallet generation should succeed");
 
         assert!(!wallet.seed_phrase.is_empty());
         assert!(!wallet.unified_address.is_empty());
         assert!(wallet.transparent_address.is_some());
         assert!(!wallet.unified_full_viewing_key.is_empty());
+        assert_eq!(wallet.network, "testnet");
+    }
+
+    #[test]
+    fn test_generate_wallet_mainnet() {
+        let entropy = [0u8; 32]; // Deterministic for testing
+        let wallet = generate_wallet(&entropy, Network::MainNetwork)
+            .expect("wallet generation should succeed");
+
+        assert!(!wallet.seed_phrase.is_empty());
+        assert!(wallet.unified_address.starts_with("u1"));
+        assert!(
+            wallet
+                .transparent_address
+                .as_ref()
+                .map(|s| s.starts_with("t1"))
+                .unwrap_or(false)
+        );
+        assert!(wallet.unified_full_viewing_key.starts_with("uview1"));
+        assert_eq!(wallet.network, "mainnet");
     }
 }

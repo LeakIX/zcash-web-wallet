@@ -21,11 +21,14 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Generate a new testnet wallet
+    /// Generate a new wallet
     Generate {
         /// Output file path (wallet is saved as JSON)
         #[arg(short, long, default_value = "wallet.json")]
         output: String,
+        /// Use mainnet instead of testnet
+        #[arg(long)]
+        mainnet: bool,
     },
     /// Restore wallet from seed phrase
     Restore {
@@ -35,6 +38,9 @@ enum Commands {
         /// Output file path (wallet is saved as JSON if provided)
         #[arg(short, long)]
         output: Option<String>,
+        /// Use mainnet instead of testnet
+        #[arg(long)]
+        mainnet: bool,
     },
     /// Show faucet information
     Faucet,
@@ -86,8 +92,12 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Generate { output } => generate_wallet(&output),
-        Commands::Restore { seed, output } => restore_wallet(&seed, output.as_deref()),
+        Commands::Generate { output, mainnet } => generate_wallet(&output, mainnet),
+        Commands::Restore {
+            seed,
+            output,
+            mainnet,
+        } => restore_wallet(&seed, output.as_deref(), mainnet),
         Commands::Faucet => show_faucet_info(),
         Commands::Config { rpc_url, db } => configure(&db, rpc_url),
         Commands::Scan {
@@ -102,7 +112,7 @@ fn main() -> Result<()> {
     }
 }
 
-fn generate_wallet(output_path: &str) -> Result<()> {
+fn generate_wallet(output_path: &str, mainnet: bool) -> Result<()> {
     // Check if output file already exists
     let path = Path::new(output_path);
     if path.exists() {
@@ -112,12 +122,19 @@ fn generate_wallet(output_path: &str) -> Result<()> {
         );
     }
 
+    let network = if mainnet {
+        Network::MainNetwork
+    } else {
+        Network::TestNetwork
+    };
+    let network_name = if mainnet { "MAINNET" } else { "TESTNET" };
+
     // Generate random entropy for 24-word mnemonic (256 bits = 32 bytes)
     let mut entropy = [0u8; 32];
     OsRng.fill_bytes(&mut entropy);
 
     // Use core library for wallet derivation
-    let wallet = zcash_wallet_core::generate_wallet(&entropy)
+    let wallet = zcash_wallet_core::generate_wallet(&entropy, network)
         .map_err(|e| anyhow::anyhow!("Failed to generate wallet: {}", e))?;
 
     // Create JSON wallet data
@@ -135,7 +152,7 @@ fn generate_wallet(output_path: &str) -> Result<()> {
 
     // Print summary to console
     println!("============================================================");
-    println!("           ZCASH TESTNET WALLET GENERATED");
+    println!("           ZCASH {} WALLET GENERATED", network_name);
     println!("============================================================");
     println!();
     println!("Wallet saved to: {}", output_path);
@@ -143,7 +160,7 @@ fn generate_wallet(output_path: &str) -> Result<()> {
     println!("IMPORTANT: Keep this file secure! It contains your seed phrase.");
     println!();
     println!("------------------------------------------------------------");
-    println!("ADDRESSES (use these with the faucet)");
+    println!("ADDRESSES");
     println!("------------------------------------------------------------");
     println!();
     println!("Unified Address (recommended):");
@@ -163,19 +180,31 @@ fn generate_wallet(output_path: &str) -> Result<()> {
     println!();
     println!("============================================================");
     println!();
-    println!("Next steps:");
-    println!("  1. Copy your Unified or Transparent address");
-    println!("  2. Go to https://testnet.zecfaucet.com/");
-    println!("  3. Paste your address and request testnet ZEC");
-    println!("  4. Use the viewing key in the web viewer to see transactions");
+    if mainnet {
+        println!("WARNING: This is a mainnet wallet. Any ZEC sent to these");
+        println!("addresses has real monetary value. Keep your seed phrase safe!");
+    } else {
+        println!("Next steps:");
+        println!("  1. Copy your Unified or Transparent address");
+        println!("  2. Go to https://testnet.zecfaucet.com/");
+        println!("  3. Paste your address and request testnet ZEC");
+        println!("  4. Use the viewing key in the web viewer to see transactions");
+    }
     println!();
 
     Ok(())
 }
 
-fn restore_wallet(seed_phrase: &str, output_path: Option<&str>) -> Result<()> {
+fn restore_wallet(seed_phrase: &str, output_path: Option<&str>, mainnet: bool) -> Result<()> {
+    let network = if mainnet {
+        Network::MainNetwork
+    } else {
+        Network::TestNetwork
+    };
+    let network_name = if mainnet { "MAINNET" } else { "TESTNET" };
+
     // Use core library for wallet restoration
-    let wallet = zcash_wallet_core::restore_wallet(seed_phrase)
+    let wallet = zcash_wallet_core::restore_wallet(seed_phrase, network)
         .map_err(|e| anyhow::anyhow!("Failed to restore wallet: {}", e))?;
 
     // Save to file if output path is provided
@@ -201,7 +230,7 @@ fn restore_wallet(seed_phrase: &str, output_path: Option<&str>) -> Result<()> {
     }
 
     println!("============================================================");
-    println!("           WALLET RESTORED FROM SEED");
+    println!("           {} WALLET RESTORED FROM SEED", network_name);
     println!("============================================================");
     println!();
     if let Some(path) = output_path {
@@ -270,7 +299,7 @@ fn scan_transaction(
     raw_hex: Option<String>,
     height: Option<u32>,
 ) -> Result<()> {
-    // Load wallet to get viewing key
+    // Load wallet to get viewing key and network
     let wallet_content = fs::read_to_string(wallet_path)
         .with_context(|| format!("Failed to read wallet file: {}", wallet_path))?;
     let wallet_json: serde_json::Value =
@@ -278,6 +307,13 @@ fn scan_transaction(
     let viewing_key = wallet_json["unified_full_viewing_key"]
         .as_str()
         .context("Wallet missing unified_full_viewing_key")?;
+
+    // Get network from wallet file
+    let network_str = wallet_json["network"].as_str().unwrap_or("testnet");
+    let network = match network_str {
+        "mainnet" => Network::MainNetwork,
+        _ => Network::TestNetwork,
+    };
 
     // Get transaction hex
     let tx_hex = if let Some(hex) = raw_hex {
@@ -296,7 +332,6 @@ fn scan_transaction(
     };
 
     // Parse and scan transaction
-    let network = Network::TestNetwork;
     let tx = scanner::parse_transaction(&tx_hex, network)?;
     let result = scanner::scan_transaction(&tx, viewing_key, network, height)?;
 

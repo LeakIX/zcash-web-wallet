@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 use rand::RngCore;
 use zcash_address::unified::{self, Container, Encoding};
 use zcash_primitives::transaction::Transaction;
-use zcash_protocol::consensus::NetworkType;
+use zcash_protocol::consensus::{Network, NetworkType};
 
 /// Result type for decrypted transaction data
 #[derive(Serialize, Deserialize)]
@@ -366,10 +366,24 @@ pub fn get_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
-/// Generate a new testnet wallet with a random seed phrase
+/// Parse network string to Network enum
+fn parse_network(network_str: &str) -> Network {
+    match network_str.to_lowercase().as_str() {
+        "mainnet" | "main" => Network::MainNetwork,
+        _ => Network::TestNetwork,
+    }
+}
+
+/// Generate a new wallet with a random seed phrase
 #[wasm_bindgen]
-pub fn generate_wallet() -> String {
-    console_log("Generating new wallet...");
+pub fn generate_wallet(network_str: &str) -> String {
+    let network = parse_network(network_str);
+    let network_name = if matches!(network, Network::MainNetwork) {
+        "mainnet"
+    } else {
+        "testnet"
+    };
+    console_log(&format!("Generating new {} wallet...", network_name));
 
     // Generate random entropy for 24-word mnemonic (256 bits = 32 bytes)
     let mut entropy = [0u8; 32];
@@ -378,7 +392,7 @@ pub fn generate_wallet() -> String {
         rand::thread_rng().fill_bytes(&mut entropy);
     });
 
-    let result = match zcash_wallet_core::generate_wallet(&entropy) {
+    let result = match zcash_wallet_core::generate_wallet(&entropy, network) {
         Ok(wallet) => {
             console_log(&format!(
                 "Wallet generated: {}",
@@ -421,10 +435,19 @@ pub fn generate_wallet() -> String {
 
 /// Restore a wallet from an existing seed phrase
 #[wasm_bindgen]
-pub fn restore_wallet(seed_phrase: &str) -> String {
-    console_log("Restoring wallet from seed phrase...");
+pub fn restore_wallet(seed_phrase: &str, network_str: &str) -> String {
+    let network = parse_network(network_str);
+    let network_name = if matches!(network, Network::MainNetwork) {
+        "mainnet"
+    } else {
+        "testnet"
+    };
+    console_log(&format!(
+        "Restoring {} wallet from seed phrase...",
+        network_name
+    ));
 
-    let result = match zcash_wallet_core::restore_wallet(seed_phrase) {
+    let result = match zcash_wallet_core::restore_wallet(seed_phrase, network) {
         Ok(wallet) => {
             console_log(&format!(
                 "Wallet restored: {}",

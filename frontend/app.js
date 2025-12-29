@@ -658,10 +658,13 @@ async function generateWallet() {
   }
 
   const btn = document.getElementById("generateWalletBtn");
+  const networkSelect = document.getElementById("walletNetwork");
+  const network = networkSelect ? networkSelect.value : "testnet";
+
   setWalletLoading(btn, true);
 
   try {
-    const resultJson = wasmModule.generate_wallet();
+    const resultJson = wasmModule.generate_wallet(network);
     const result = JSON.parse(resultJson);
 
     if (result.success) {
@@ -693,10 +696,13 @@ async function restoreWallet() {
   }
 
   const btn = document.getElementById("restoreWalletBtn");
+  const networkSelect = document.getElementById("walletNetwork");
+  const network = networkSelect ? networkSelect.value : "testnet";
+
   setWalletLoading(btn, true);
 
   try {
-    const resultJson = wasmModule.restore_wallet(seedPhrase);
+    const resultJson = wasmModule.restore_wallet(seedPhrase, network);
     const result = JSON.parse(resultJson);
 
     if (result.success) {
@@ -778,13 +784,14 @@ function downloadWallet() {
     generated_at: new Date().toISOString(),
   };
 
+  const network = currentWalletData.network || "testnet";
   const blob = new Blob([JSON.stringify(walletJson, null, 2)], {
     type: "application/json",
   });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `zcash-testnet-wallet-${Date.now()}.json`;
+  a.download = `zcash-${network}-wallet-${Date.now()}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

@@ -279,10 +279,21 @@
                 </div>
                 <div class="card-body">
                   <p class="text-muted small mb-3">
-                    Generate a new Zcash testnet wallet with a 24-word seed
-                    phrase. Your keys are generated locally and never leave your
-                    browser.
+                    Generate a new Zcash wallet with a 24-word seed phrase. Your
+                    keys are generated locally and never leave your browser.
                   </p>
+                  <div class="mb-3">
+                    <label for="walletNetwork" class="form-label"
+                      >Network</label
+                    >
+                    <select class="form-select" id="walletNetwork">
+                      <option value="testnet" selected>Testnet</option>
+                      <option value="mainnet">Mainnet</option>
+                    </select>
+                    <div class="form-text">
+                      Testnet is for testing. Mainnet is for real ZEC.
+                    </div>
+                  </div>
                   <button
                     type="button"
                     class="btn btn-primary w-100"

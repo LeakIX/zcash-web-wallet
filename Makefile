@@ -56,9 +56,26 @@ build-sass: ## Compile Sass to CSS
 # =============================================================================
 
 .PHONY: serve
-serve: build ## Build and serve frontend on port 3000
+serve: build inject-version ## Build and serve frontend on port 3000
 	@echo "Serving frontend on http://localhost:3000"
 	cd frontend && python -m http.server 3000
+
+.PHONY: inject-version
+inject-version: ## Inject git commit hash into frontend
+	@echo "Injecting version info..."
+	@COMMIT_HASH=$$(git rev-parse HEAD); \
+	COMMIT_SHORT=$$(git rev-parse --short HEAD); \
+	sed -i "s/__COMMIT_HASH__/$${COMMIT_HASH}/g" frontend/index.html; \
+	sed -i "s/__COMMIT_SHORT__/$${COMMIT_SHORT}/g" frontend/index.html
+	@echo "Version: $$(git rev-parse --short HEAD)"
+
+.PHONY: restore-version
+restore-version: ## Restore version placeholders in frontend
+	@echo "Restoring version placeholders..."
+	@COMMIT_HASH=$$(git rev-parse HEAD); \
+	COMMIT_SHORT=$$(git rev-parse --short HEAD); \
+	sed -i "s/$${COMMIT_HASH}/__COMMIT_HASH__/g" frontend/index.html; \
+	sed -i "s/$${COMMIT_SHORT}/__COMMIT_SHORT__/g" frontend/index.html
 
 .PHONY: watch-sass
 watch-sass: ## Watch Sass files and recompile on changes
