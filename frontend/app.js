@@ -1629,6 +1629,294 @@ function copyToClipboard(elementId, btn) {
     });
 }
 
+// ===========================================================================
+// Address Viewer
+// ===========================================================================
+
+let derivedAddressesData = [];
+
+function initAddressViewerUI() {
+  const deriveBtn = document.getElementById("deriveAddressesBtn");
+  const copyAllBtn = document.getElementById("copyAllAddressesBtn");
+  const exportCsvBtn = document.getElementById("exportAddressesCsvBtn");
+  const walletSelect = document.getElementById("addressWalletSelect");
+
+  if (deriveBtn) {
+    deriveBtn.addEventListener("click", deriveAddresses);
+  }
+  if (copyAllBtn) {
+    copyAllBtn.addEventListener("click", copyAllAddresses);
+  }
+  if (exportCsvBtn) {
+    exportCsvBtn.addEventListener("click", exportAddressesCsv);
+  }
+  if (walletSelect) {
+    // Populate wallet selector when tab is shown
+    document
+      .getElementById("addresses-tab")
+      ?.addEventListener("shown.bs.tab", populateAddressViewerWallets);
+  }
+
+  // Initial population
+  populateAddressViewerWallets();
+}
+
+function populateAddressViewerWallets() {
+  const walletSelect = document.getElementById("addressWalletSelect");
+  const noWalletsWarning = document.getElementById("addressNoWalletsWarning");
+  if (!walletSelect) return;
+
+  const wallets = loadWallets();
+
+  walletSelect.innerHTML = '<option value="">-- Select a wallet --</option>';
+
+  for (const wallet of wallets) {
+    const option = document.createElement("option");
+    option.value = wallet.id;
+    option.textContent = `${wallet.alias} (${wallet.network})`;
+    walletSelect.appendChild(option);
+  }
+
+  // Show/hide no wallets warning
+  if (noWalletsWarning) {
+    if (wallets.length === 0) {
+      noWalletsWarning.classList.remove("d-none");
+    } else {
+      noWalletsWarning.classList.add("d-none");
+    }
+  }
+}
+
+async function deriveAddresses() {
+  const walletSelect = document.getElementById("addressWalletSelect");
+  const fromInput = document.getElementById("addressFromIndex");
+  const toInput = document.getElementById("addressToIndex");
+
+  const walletId = walletSelect?.value;
+  const fromIndex = parseInt(fromInput?.value || "0", 10);
+  const toIndex = parseInt(toInput?.value || "10", 10);
+
+  if (!walletId) {
+    showAddressError("Please select a wallet.");
+    return;
+  }
+
+  const wallet = getWallet(walletId);
+  if (!wallet) {
+    showAddressError("Selected wallet not found.");
+    return;
+  }
+
+  if (!wallet.seed_phrase) {
+    showAddressError("Selected wallet has no seed phrase.");
+    return;
+  }
+
+  if (fromIndex < 0 || toIndex < 0) {
+    showAddressError("Indices must be non-negative.");
+    return;
+  }
+
+  if (fromIndex > toIndex) {
+    showAddressError("From index must be less than or equal to To index.");
+    return;
+  }
+
+  const count = toIndex - fromIndex + 1;
+  if (count > 1000) {
+    showAddressError("Maximum range is 1000 addresses.");
+    return;
+  }
+
+  if (!wasmModule) {
+    showAddressError("WASM module not loaded. Please refresh the page.");
+    return;
+  }
+
+  setAddressLoading(true);
+  hideAddressError();
+
+  try {
+    // Derive transparent addresses
+    const transparentJson = wasmModule.derive_transparent_addresses(
+      wallet.seed_phrase,
+      wallet.network || "testnet",
+      wallet.account_index || 0,
+      fromIndex,
+      count
+    );
+    const transparentAddresses = JSON.parse(transparentJson);
+
+    // Derive unified addresses
+    const unifiedJson = wasmModule.derive_unified_addresses(
+      wallet.seed_phrase,
+      wallet.network || "testnet",
+      wallet.account_index || 0,
+      fromIndex,
+      count
+    );
+    const unifiedAddresses = JSON.parse(unifiedJson);
+
+    // Combine into address data
+    derivedAddressesData = [];
+    for (let i = 0; i < count; i++) {
+      derivedAddressesData.push({
+        index: fromIndex + i,
+        transparent: transparentAddresses[i] || "",
+        unified: unifiedAddresses[i] || "",
+      });
+    }
+
+    displayDerivedAddresses();
+  } catch (error) {
+    console.error("Address derivation error:", error);
+    showAddressError(`Error: ${error.message}`);
+  } finally {
+    setAddressLoading(false);
+  }
+}
+
+function displayDerivedAddresses() {
+  const displayDiv = document.getElementById("addressesDisplay");
+  const copyAllBtn = document.getElementById("copyAllAddressesBtn");
+  const exportCsvBtn = document.getElementById("exportAddressesCsvBtn");
+
+  if (!displayDiv) return;
+
+  if (derivedAddressesData.length === 0) {
+    displayDiv.innerHTML = `
+      <div class="text-muted text-center py-5">
+        <i class="bi bi-card-list fs-1"></i>
+        <p class="mt-2 mb-0">No addresses derived yet.</p>
+      </div>
+    `;
+    copyAllBtn?.classList.add("d-none");
+    exportCsvBtn?.classList.add("d-none");
+    return;
+  }
+
+  // Show export buttons
+  copyAllBtn?.classList.remove("d-none");
+  exportCsvBtn?.classList.remove("d-none");
+
+  let html = `
+    <div class="table-responsive">
+      <table class="table table-sm table-hover">
+        <thead>
+          <tr>
+            <th style="width: 60px">Index</th>
+            <th>Transparent Address</th>
+            <th>Unified Address</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  for (const addr of derivedAddressesData) {
+    html += `
+      <tr>
+        <td class="text-muted">${addr.index}</td>
+        <td class="mono small text-truncate" style="max-width: 200px" title="${escapeHtml(addr.transparent)}">${escapeHtml(addr.transparent)}</td>
+        <td class="mono small text-truncate" style="max-width: 300px" title="${escapeHtml(addr.unified)}">${escapeHtml(addr.unified)}</td>
+      </tr>
+    `;
+  }
+
+  html += `
+        </tbody>
+      </table>
+    </div>
+    <p class="small text-muted mb-0">Showing ${derivedAddressesData.length} addresses</p>
+  `;
+
+  displayDiv.innerHTML = html;
+}
+
+function copyAllAddresses() {
+  if (derivedAddressesData.length === 0) return;
+
+  let text = "Index\tTransparent Address\tUnified Address\n";
+  for (const addr of derivedAddressesData) {
+    text += `${addr.index}\t${addr.transparent}\t${addr.unified}\n`;
+  }
+
+  const btn = document.getElementById("copyAllAddressesBtn");
+  navigator.clipboard
+    .writeText(text)
+    .then(() => {
+      if (btn) {
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check me-1"></i> Copied!';
+        btn.classList.add("btn-success");
+        btn.classList.remove("btn-outline-secondary");
+
+        setTimeout(() => {
+          btn.innerHTML = originalHtml;
+          btn.classList.remove("btn-success");
+          btn.classList.add("btn-outline-secondary");
+        }, 2000);
+      }
+    })
+    .catch((err) => {
+      console.error("Failed to copy:", err);
+    });
+}
+
+function exportAddressesCsv() {
+  if (derivedAddressesData.length === 0) return;
+
+  let csv = "Index,Transparent Address,Unified Address\n";
+  for (const addr of derivedAddressesData) {
+    // Escape quotes in addresses (unlikely but safe)
+    const transparent = addr.transparent.replace(/"/g, '""');
+    const unified = addr.unified.replace(/"/g, '""');
+    csv += `${addr.index},"${transparent}","${unified}"\n`;
+  }
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `zcash-addresses-${Date.now()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function showAddressError(message) {
+  const errorDiv = document.getElementById("addressError");
+  if (errorDiv) {
+    errorDiv.classList.remove("d-none");
+    errorDiv.textContent = message;
+  }
+}
+
+function hideAddressError() {
+  const errorDiv = document.getElementById("addressError");
+  if (errorDiv) {
+    errorDiv.classList.add("d-none");
+  }
+}
+
+function setAddressLoading(loading) {
+  const btn = document.getElementById("deriveAddressesBtn");
+  if (!btn) return;
+
+  const spinner = btn.querySelector(".loading-spinner");
+  const text = btn.querySelector(".btn-text");
+
+  if (loading) {
+    btn.disabled = true;
+    if (spinner) spinner.classList.remove("d-none");
+    if (text) text.classList.add("d-none");
+  } else {
+    btn.disabled = false;
+    if (spinner) spinner.classList.add("d-none");
+    if (text) text.classList.remove("d-none");
+  }
+}
+
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", async () => {
   // Set initial theme
@@ -1644,5 +1932,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   populateScannerEndpoints();
   initWalletUI();
   initScannerUI();
+  initAddressViewerUI();
   await initWasm();
 });

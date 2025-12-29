@@ -72,6 +72,18 @@
             <i class="bi bi-wallet2 me-1"></i> Wallet Generator
           </button>
         </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="addresses-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#addresses-pane"
+            type="button"
+            role="tab"
+          >
+            <i class="bi bi-card-list me-1"></i> Address Viewer
+          </button>
+        </li>
       </ul>
 
       <div class="tab-content" id="mainTabContent">
@@ -718,6 +730,155 @@
                 </div>
                 <div class="card-body">
                   <div id="savedWalletsList"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="addresses-pane" role="tabpanel">
+          <div class="row">
+            <div class="col-lg-4">
+              <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                  <h6 class="mb-0 fw-semibold">
+                    <i class="bi bi-card-list me-1"></i> Derive Addresses
+                  </h6>
+                </div>
+                <div class="card-body">
+                  <p class="text-muted small mb-3">
+                    View transparent and unified addresses derived from a saved
+                    wallet. Useful for sharing receiving addresses or verifying
+                    address derivation.
+                  </p>
+
+                  <div class="mb-3">
+                    <label for="addressWalletSelect" class="form-label"
+                      >Select Wallet</label
+                    >
+                    <select class="form-select" id="addressWalletSelect">
+                      <option value="">-- Select a wallet --</option>
+                    </select>
+                    <div
+                      id="addressNoWalletsWarning"
+                      class="alert alert-warning mt-2 d-none"
+                    >
+                      <i class="bi bi-exclamation-triangle me-1"></i>
+                      No wallets saved. Please go to the Wallet Generator tab to
+                      create one.
+                    </div>
+                  </div>
+
+                  <div class="row mb-3">
+                    <div class="col-6">
+                      <label for="addressFromIndex" class="form-label"
+                        >From Index</label
+                      >
+                      <input
+                        type="number"
+                        class="form-control"
+                        id="addressFromIndex"
+                        value="0"
+                        min="0"
+                      />
+                    </div>
+                    <div class="col-6">
+                      <label for="addressToIndex" class="form-label"
+                        >To Index</label
+                      >
+                      <input
+                        type="number"
+                        class="form-control"
+                        id="addressToIndex"
+                        value="10"
+                        min="0"
+                      />
+                    </div>
+                  </div>
+
+                  <div
+                    id="addressError"
+                    class="alert alert-danger d-none"
+                  ></div>
+
+                  <button
+                    type="button"
+                    class="btn btn-primary w-100"
+                    id="deriveAddressesBtn"
+                  >
+                    <span class="btn-text"
+                      ><i class="bi bi-arrow-right-circle me-1"></i> Derive
+                      Addresses</span
+                    >
+                    <span
+                      class="loading-spinner spinner-border spinner-border-sm d-none"
+                      role="status"
+                    >
+                      <span class="visually-hidden">Loading...</span>
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="card border-info">
+                <div class="card-header bg-info bg-opacity-10">
+                  <h6 class="mb-0 fw-semibold text-info">
+                    About Address Indices
+                  </h6>
+                </div>
+                <div class="card-body small">
+                  <p class="mb-2">
+                    <strong>Transparent Addresses:</strong> Derived using
+                    BIP32/BIP44 paths. Each index produces a unique address.
+                  </p>
+                  <p class="mb-2">
+                    <strong>Unified Addresses:</strong> Derived using ZIP-316
+                    diversifier indices. Each contains Orchard and Sapling
+                    receivers.
+                  </p>
+                  <p class="mb-0">
+                    <strong>Tip:</strong> Use different indices to generate
+                    unique receiving addresses for better privacy.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-8">
+              <div class="card shadow-sm">
+                <div
+                  class="card-header d-flex justify-content-between align-items-center"
+                >
+                  <h6 class="mb-0 fw-semibold">
+                    <i class="bi bi-list-ol me-1"></i> Derived Addresses
+                  </h6>
+                  <div class="btn-group btn-group-sm" id="addressExportBtns">
+                    <button
+                      class="btn btn-outline-secondary d-none"
+                      id="copyAllAddressesBtn"
+                      title="Copy all addresses"
+                    >
+                      <i class="bi bi-clipboard me-1"></i> Copy All
+                    </button>
+                    <button
+                      class="btn btn-outline-secondary d-none"
+                      id="exportAddressesCsvBtn"
+                      title="Export as CSV"
+                    >
+                      <i class="bi bi-download me-1"></i> Export CSV
+                    </button>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div id="addressesDisplay">
+                    <div class="text-muted text-center py-5">
+                      <i class="bi bi-card-list fs-1"></i>
+                      <p class="mt-2 mb-0">
+                        Select a wallet and click "Derive Addresses" to view
+                        addresses.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
