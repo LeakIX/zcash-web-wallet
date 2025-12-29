@@ -81,6 +81,30 @@ body
     strong
       color: var(--body-color) !important
 
+// Sapling diversifier note alert styling for dark mode
+[data-theme="dark"] .sapling-note
+  background-color: rgba(255, 193, 7, 0.15)
+  border-color: rgba(255, 193, 7, 0.3)
+  color: #ffc107
+
+  strong
+    color: #ffc107
+
+  i
+    color: #ffc107
+
+@media (prefers-color-scheme: dark)
+  :root:not([data-theme="light"]) .sapling-note
+    background-color: rgba(255, 193, 7, 0.15)
+    border-color: rgba(255, 193, 7, 0.3)
+    color: #ffc107
+
+    strong
+      color: #ffc107
+
+    i
+      color: #ffc107
+
 // Monospace text
 .mono
   font-family: $font-mono

@@ -1929,7 +1929,37 @@ function displayDerivedAddresses() {
   copyAllBtn?.classList.remove("d-none");
   exportCsvBtn?.classList.remove("d-none");
 
-  let html = `
+  // Detect duplicate unified addresses (due to Sapling diversifier behavior)
+  // Track first occurrence index for each address
+  const firstOccurrence = new Map();
+  const duplicateIndices = new Set();
+
+  for (const addr of derivedAddressesData) {
+    if (firstOccurrence.has(addr.unified)) {
+      // This is a duplicate (not the first occurrence)
+      duplicateIndices.add(addr.index);
+    } else {
+      // First occurrence of this address
+      firstOccurrence.set(addr.unified, addr.index);
+    }
+  }
+
+  const duplicateCount = duplicateIndices.size;
+
+  let html = "";
+
+  // Show warning if there are duplicates
+  if (duplicateCount > 0) {
+    html += `
+      <div class="alert alert-warning py-2 mb-3 sapling-note">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        <strong>Duplicate addresses detected:</strong> ${duplicateCount} indices produce duplicate unified addresses
+        due to Sapling diversifier behavior. Avoid reusing these addresses.
+      </div>
+    `;
+  }
+
+  html += `
     <div class="table-responsive">
       <table class="table table-sm">
         <thead>
@@ -1945,8 +1975,15 @@ function displayDerivedAddresses() {
   for (const addr of derivedAddressesData) {
     const transparentId = `copy-t-${addr.index}`;
     const unifiedId = `copy-u-${addr.index}`;
+    // Only flag as duplicate if this is NOT the first occurrence
+    const isDuplicate = duplicateIndices.has(addr.index);
+    const duplicateBadge = isDuplicate
+      ? `<span class="badge bg-warning text-dark ms-1" title="This address is identical to index ${firstOccurrence.get(addr.unified)} due to Sapling diversifier behavior. Avoid reusing."><i class="bi bi-exclamation-triangle-fill"></i> Duplicate</span>`
+      : "";
+    const rowClass = isDuplicate ? "table-warning" : "";
+
     html += `
-      <tr>
+      <tr class="${rowClass}">
         <td class="text-muted align-middle">${addr.index}</td>
         <td class="align-middle">
           <div class="d-flex align-items-center gap-2">
@@ -1962,6 +1999,7 @@ function displayDerivedAddresses() {
             <button id="${unifiedId}" class="btn btn-sm btn-link p-0 text-muted" onclick="copyAddress('${escapeHtml(addr.unified)}', '${unifiedId}')" title="Copy address">
               <i class="bi bi-clipboard"></i>
             </button>
+            ${duplicateBadge}
           </div>
         </td>
       </tr>
