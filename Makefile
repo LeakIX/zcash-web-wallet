@@ -106,7 +106,7 @@ format-check-js: ## Check JavaScript/HTML formatting with Prettier
 # =============================================================================
 
 .PHONY: lint
-lint: lint-rust lint-js ## Lint all code
+lint: lint-rust lint-js lint-shell ## Lint all code
 	@echo "Linting complete"
 
 .PHONY: lint-rust
@@ -127,12 +127,17 @@ lint-cli: ## Lint CLI tool with clippy
 lint-js: ## Alias for format-check-js
 	@$(MAKE) format-check-js
 
+.PHONY: lint-shell
+lint-shell: ## Lint shell scripts with shellcheck
+	@echo "Linting shell scripts..."
+	shellcheck cli/e2e/*.sh
+
 # =============================================================================
 # Testing
 # =============================================================================
 
 .PHONY: test
-test: test-rust ## Run all tests
+test: test-rust test-e2e ## Run all tests
 	@echo "All tests passed"
 
 .PHONY: test-rust
@@ -148,6 +153,11 @@ test-wasm: ## Run WASM module unit tests
 test-cli: ## Run CLI unit tests
 	@echo "Running CLI tests..."
 	cargo +nightly test -p zcash-wallet-cli
+
+.PHONY: test-e2e
+test-e2e: build-cli ## Run CLI end-to-end tests
+	@echo "Running CLI e2e tests..."
+	cli/e2e/test_cli.sh
 
 .PHONY: test-wasm-browser
 test-wasm-browser: ## Run WASM tests in headless browser

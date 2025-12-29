@@ -37,6 +37,7 @@ struct RpcError {
 
 /// Transaction info returned by getrawtransaction with verbose=1.
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct TransactionInfo {
     pub hex: String,
     pub txid: String,
@@ -50,6 +51,7 @@ pub struct TransactionInfo {
     pub height: Option<i64>,
 }
 
+#[allow(dead_code)]
 impl RpcClient {
     /// Create a new RPC client.
     pub fn new(url: &str) -> Self {

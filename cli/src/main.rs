@@ -37,6 +37,9 @@ enum Commands {
         /// The 24-word seed phrase
         #[arg(short, long)]
         seed: String,
+        /// Output file path (wallet is saved as JSON if provided)
+        #[arg(short, long)]
+        output: Option<String>,
     },
     /// Show faucet information
     Faucet,
@@ -89,7 +92,7 @@ fn main() -> Result<()> {
 
     match cli.command {
         Commands::Generate { output } => generate_wallet(&output),
-        Commands::Restore { seed } => restore_wallet(&seed),
+        Commands::Restore { seed, output } => restore_wallet(&seed, output.as_deref()),
         Commands::Faucet => show_faucet_info(),
         Commands::Config { rpc_url, db } => configure(&db, rpc_url),
         Commands::Scan {
@@ -181,17 +184,44 @@ fn generate_wallet(output_path: &str) -> Result<()> {
     Ok(())
 }
 
-fn restore_wallet(seed_phrase: &str) -> Result<()> {
+fn restore_wallet(seed_phrase: &str, output_path: Option<&str>) -> Result<()> {
     let mnemonic = Mnemonic::parse_in_normalized(Language::English, seed_phrase)
         .context("Invalid seed phrase")?;
 
     let seed = mnemonic.to_seed("");
     let wallet = derive_wallet(&seed)?;
 
+    // Save to file if output path is provided
+    if let Some(path_str) = output_path {
+        let path = Path::new(path_str);
+        if path.exists() {
+            bail!(
+                "Output file '{}' already exists. Choose a different filename or remove the existing file.",
+                path_str
+            );
+        }
+
+        let wallet_json = serde_json::json!({
+            "seed_phrase": seed_phrase,
+            "network": "testnet",
+            "unified_address": wallet.unified_address,
+            "unified_full_viewing_key": wallet.ufvk,
+            "transparent_address": wallet.transparent_address,
+            "sapling_address": wallet.sapling_address,
+        });
+
+        let json_string = serde_json::to_string_pretty(&wallet_json)?;
+        fs::write(path, &json_string).context("Failed to write wallet file")?;
+    }
+
     println!("============================================================");
     println!("           WALLET RESTORED FROM SEED");
     println!("============================================================");
     println!();
+    if let Some(path) = output_path {
+        println!("Wallet saved to: {}", path);
+        println!();
+    }
     println!("Unified Address:");
     println!("  {}", wallet.unified_address);
     println!();

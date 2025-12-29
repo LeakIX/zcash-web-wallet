@@ -6,6 +6,7 @@ use std::path::Path;
 
 /// Represents a tracked note in the database.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct Note {
     pub id: i64,
     pub txid: String,
@@ -100,6 +101,7 @@ impl Database {
     }
 
     /// Insert a new note. Returns Ok(true) if inserted, Ok(false) if already exists.
+    #[allow(clippy::too_many_arguments)]
     pub fn insert_note(
         &self,
         txid: &str,

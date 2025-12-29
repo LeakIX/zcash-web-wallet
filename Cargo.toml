@@ -12,13 +12,14 @@ license = "MIT"
 
 [workspace.dependencies]
 # Zcash crates
-zcash_primitives = { version = "0.26", default-features = false }
+zcash_primitives = { version = "0.26.4", default-features = false }
 zcash_protocol = "0.7"
 zcash_address = "0.10"
 zcash_keys = { version = "0.12", default-features = false }
+zcash_note_encryption = "0.4.1"
 zip32 = "0.2"
 sapling-crypto = { version = "0.6", default-features = false }
-orchard = { version = "0.12", default-features = false }
+orchard = { version = "0.11", default-features = false }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
