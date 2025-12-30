@@ -79,7 +79,7 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo-cli-
 
       - name: Check formatting
-        run: cargo +nightly fmt -p zcash-wallet-cli --check
+        run: make format-check-cli
 
       - name: Lint
         run: make lint-cli

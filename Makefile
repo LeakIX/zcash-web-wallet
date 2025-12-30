@@ -107,6 +107,11 @@ format-check-rust: ## Check Rust formatting
 	@echo "Checking Rust formatting..."
 	cargo +nightly fmt --all --check
 
+.PHONY: format-check-cli
+format-check-cli: ## Check CLI Rust formatting
+	@echo "Checking CLI formatting..."
+	cargo +nightly fmt -p zcash-wallet-cli --check
+
 .PHONY: format-check-toml
 format-check-toml: ## Check TOML formatting with taplo
 	@echo "Checking TOML formatting..."
