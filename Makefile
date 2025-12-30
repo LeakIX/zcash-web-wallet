@@ -186,6 +186,36 @@ test-e2e: build-cli ## Run CLI end-to-end tests
 	cli/e2e/test_cli.sh
 
 # =============================================================================
+# Code Coverage
+# =============================================================================
+
+.PHONY: install-coverage
+install-coverage: ## Install cargo-llvm-cov for code coverage
+	@echo "Installing cargo-llvm-cov..."
+	cargo install cargo-llvm-cov
+
+.PHONY: coverage
+coverage: ## Run tests with coverage for core library
+	@echo "Running tests with coverage..."
+	cargo +nightly llvm-cov --package zcash-wallet-core
+
+.PHONY: coverage-html
+coverage-html: ## Generate HTML coverage report for core library
+	@echo "Generating HTML coverage report..."
+	cargo +nightly llvm-cov --package zcash-wallet-core --html --output-dir coverage
+	@echo "Coverage report generated at coverage/html/index.html"
+
+.PHONY: coverage-lcov
+coverage-lcov: ## Generate LCOV coverage report for CI
+	@echo "Generating LCOV coverage report..."
+	cargo +nightly llvm-cov --package zcash-wallet-core --lcov --output-path coverage.lcov
+
+.PHONY: coverage-all
+coverage-all: ## Run tests with coverage for all Rust packages
+	@echo "Running tests with coverage for all packages..."
+	cargo +nightly llvm-cov --workspace --exclude html-builder
+
+# =============================================================================
 # Cleaning
 # =============================================================================
 

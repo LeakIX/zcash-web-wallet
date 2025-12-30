@@ -1,5 +1,8 @@
 # Zcash Web Wallet
 
+[![CI](https://github.com/LeakIX/zcash-web-wallet/actions/workflows/ci.yml/badge.svg)](https://github.com/LeakIX/zcash-web-wallet/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/LeakIX/zcash-web-wallet/graph/badge.svg)](https://codecov.io/gh/LeakIX/zcash-web-wallet)
+
 A privacy-preserving Zcash wallet toolkit that runs entirely in your browser. Generate wallets, view shielded transactions, and track balances - all client-side with no server dependencies.
 
 ## Features
