@@ -578,17 +578,15 @@ fn sign_transparent_transaction_inner(
 ///
 /// JSON array of UTXOs suitable for `sign_transparent_transaction`
 #[wasm_bindgen]
-pub fn get_transparent_utxos(notes_json: &str) -> String {
+pub fn get_transparent_utxos(notes_json: &str, wallet_id: &str) -> String {
     let collection: NoteCollection = match serde_json::from_str(notes_json) {
         Ok(c) => c,
         Err(_) => match serde_json::from_str::<Vec<StoredNote>>(notes_json) {
             Ok(notes) => NoteCollection { notes },
             Err(e) => {
-                return serde_json::to_string(&NoteOperationResult {
+                return serde_json::to_string(&UtxoOperationResult {
                     success: false,
-                    notes: vec![],
-                    added: None,
-                    marked_count: None,
+                    utxos: vec![],
                     error: Some(format!("Failed to parse notes: {}", e)),
                 })
                 .unwrap_or_else(|_| {
@@ -598,11 +596,16 @@ pub fn get_transparent_utxos(notes_json: &str) -> String {
         },
     };
 
-    // Convert unspent transparent notes to UTXOs
+    // Convert unspent transparent notes to UTXOs, filtered by wallet_id
     let utxos: Vec<UtxoInput> = collection
         .notes
         .iter()
-        .filter(|n| n.pool == Pool::Transparent && n.spent_txid.is_none() && n.value > 0)
+        .filter(|n| {
+            n.pool == Pool::Transparent
+                && n.spent_txid.is_none()
+                && n.value > 0
+                && n.wallet_id == wallet_id
+        })
         .filter_map(|n| {
             n.address.as_ref().map(|addr| UtxoInput {
                 txid: n.txid.clone(),
@@ -614,7 +617,12 @@ pub fn get_transparent_utxos(notes_json: &str) -> String {
         })
         .collect();
 
-    serde_json::to_string(&utxos).unwrap_or_else(|_| "[]".to_string())
+    serde_json::to_string(&UtxoOperationResult {
+        success: true,
+        utxos,
+        error: None,
+    })
+    .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string())
 }
 
 /// Parse network string to Network enum
@@ -1005,6 +1013,13 @@ struct NoteOperationResult {
     notes: Vec<StoredNote>,
     added: Option<bool>,
     marked_count: Option<usize>,
+    error: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+struct UtxoOperationResult {
+    success: bool,
+    utxos: Vec<UtxoInput>,
     error: Option<String>,
 }
 

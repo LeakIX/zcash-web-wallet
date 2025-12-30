@@ -2727,7 +2727,10 @@ function updateSendUtxosDisplay() {
     return;
   }
 
-  const wallet = getWallet(walletId);
+  // Note: We use loadWallets() directly instead of getWallet() because
+  // getWallet() goes through WASM which strips out transparent_addresses
+  const wallets = loadWallets();
+  const wallet = wallets.find((w) => w.id === walletId);
   if (!wallet) {
     currentSendUtxos = [];
     utxosDiv.innerHTML = `
@@ -2752,8 +2755,8 @@ function updateSendUtxosDisplay() {
   const notes = getAllNotes();
   const notesJson = JSON.stringify(notes);
 
-  // Use WASM binding to get transparent UTXOs
-  const utxosResultJson = wasmModule.get_transparent_utxos(notesJson);
+  // Use WASM binding to get transparent UTXOs for this wallet
+  const utxosResultJson = wasmModule.get_transparent_utxos(notesJson, walletId);
   let utxosResult;
   try {
     utxosResult = JSON.parse(utxosResultJson);
@@ -2775,12 +2778,8 @@ function updateSendUtxosDisplay() {
     return;
   }
 
-  // Filter UTXOs to only those belonging to wallet's known addresses
-  const knownAddresses = new Set(wallet.transparent_addresses || []);
-  const utxos = (utxosResult.utxos || []).filter(
-    (utxo) => utxo.address && knownAddresses.has(utxo.address)
-  );
-
+  // UTXOs are already filtered by wallet_id in WASM
+  const utxos = utxosResult.utxos || [];
   currentSendUtxos = utxos;
 
   if (utxos.length === 0) {
