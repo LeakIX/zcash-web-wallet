@@ -196,6 +196,38 @@ body
 .text-muted
   color: var(--muted-color) !important
 
+// Bootstrap text utility classes - theme aware
+.text-body
+  color: var(--body-color) !important
+
+.text-body-secondary
+  color: var(--muted-color) !important
+
+// Card body text should inherit theme color
+.card-body
+  color: var(--body-color)
+
+// List group - theme aware
+.list-group-item
+  background-color: var(--card-bg)
+  border-color: var(--card-border-color)
+  color: var(--body-color)
+
+// Modal - theme aware
+.modal-content
+  background-color: var(--card-bg)
+  color: var(--body-color)
+
+.modal-header
+  border-color: var(--card-border-color)
+
+.modal-footer
+  border-color: var(--card-border-color)
+
+// Background utility - theme aware
+.bg-body-tertiary
+  background-color: var(--output-card-bg) !important
+
 // Tables - theme aware
 .table
   --bs-table-bg: var(--card-bg)
