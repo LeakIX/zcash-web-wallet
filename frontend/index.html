@@ -327,6 +327,93 @@
         </div>
       </div>
 
+      <!-- Disclaimer Modal -->
+      <div
+        class="modal fade"
+        id="disclaimerModal"
+        tabindex="-1"
+        aria-labelledby="disclaimerModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="disclaimerModalLabel">
+                <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i
+                >Disclaimer
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <div class="alert alert-warning">
+                <strong
+                  ><i class="bi bi-exclamation-triangle me-1"></i> Use at Your
+                  Own Risk</strong
+                >
+              </div>
+
+              <h6 class="fw-bold">No Warranty</h6>
+              <p>
+                This software is provided "as-is" without any warranty of any
+                kind, express or implied. The developers make no guarantees
+                about the reliability, accuracy, or security of this software.
+              </p>
+
+              <h6 class="fw-bold">No Liability</h6>
+              <p>
+                We are not responsible for any loss of funds, data, or any other
+                damages arising from the use of this software. This includes,
+                but is not limited to:
+              </p>
+              <ul>
+                <li>Software bugs or vulnerabilities</li>
+                <li>User error or misuse</li>
+                <li>Hardware or network failures</li>
+                <li>Third-party service failures</li>
+                <li>Loss or theft of seed phrases or private keys</li>
+              </ul>
+
+              <h6 class="fw-bold">Your Responsibility</h6>
+              <p>By using this software, you acknowledge that:</p>
+              <ul>
+                <li>
+                  You are solely responsible for the security of your funds
+                </li>
+                <li>
+                  You must securely backup your seed phrase and never share it
+                </li>
+                <li>Cryptocurrency transactions are irreversible</li>
+                <li>
+                  You should verify all transaction details before confirming
+                </li>
+                <li>You understand the risks associated with cryptocurrency</li>
+              </ul>
+
+              <h6 class="fw-bold">Experimental Software</h6>
+              <p class="mb-0">
+                This is experimental software intended for educational and
+                testing purposes. Always test with small amounts first and never
+                store more funds than you can afford to lose.
+              </p>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Admin View tabs (hidden in simple mode) -->
       <ul class="nav nav-tabs mb-4" id="mainTabs" role="tablist">
         <li class="nav-item" role="presentation">
@@ -1521,7 +1608,15 @@
             >
           </span>
         </p>
-        <div class="d-flex gap-3">
+        <div class="d-flex gap-3 align-items-center">
+          <a
+            href="#"
+            class="text-muted small"
+            data-bs-toggle="modal"
+            data-bs-target="#disclaimerModal"
+            >Disclaimer</a
+          >
+          <span class="text-muted">|</span>
           <a
             href="https://github.com/dannywillems"
             target="_blank"
