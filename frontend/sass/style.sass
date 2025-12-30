@@ -196,6 +196,80 @@ body
 .text-muted
   color: var(--muted-color) !important
 
+// List group styling for dark mode
+[data-theme="dark"] .list-group-item
+  background-color: #1e293b
+  border-color: #475569
+  color: #f8fafc
+
+  h6
+    color: #f8fafc
+
+  small
+    color: #94a3b8
+
+  .btn-outline-secondary
+    border-color: #64748b
+    color: #cbd5e1
+
+    &:hover
+      background-color: #334155
+      border-color: #64748b
+      color: #f8fafc
+
+  .btn-outline-danger
+    border-color: #dc2626
+    color: #fca5a5
+
+    &:hover
+      background-color: #dc2626
+      color: #ffffff
+
+  .badge.bg-success
+    background-color: #059669 !important
+    color: #ffffff
+
+  .badge.bg-warning
+    background-color: #d97706 !important
+    color: #ffffff
+
+@media (prefers-color-scheme: dark)
+  :root:not([data-theme="light"]) .list-group-item
+    background-color: #1e293b
+    border-color: #475569
+    color: #f8fafc
+
+    h6
+      color: #f8fafc
+
+    small
+      color: #94a3b8
+
+    .btn-outline-secondary
+      border-color: #64748b
+      color: #cbd5e1
+
+      &:hover
+        background-color: #334155
+        border-color: #64748b
+        color: #f8fafc
+
+    .btn-outline-danger
+      border-color: #dc2626
+      color: #fca5a5
+
+      &:hover
+        background-color: #dc2626
+        color: #ffffff
+
+    .badge.bg-success
+      background-color: #059669 !important
+      color: #ffffff
+
+    .badge.bg-warning
+      background-color: #d97706 !important
+      color: #ffffff
+
 // Mobile responsiveness
 @media (max-width: 576px)
   .display-5
