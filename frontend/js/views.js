@@ -109,6 +109,7 @@ export function updateSimpleView() {
   if (selectedWalletId) {
     walletSelect.value = selectedWalletId;
     updateSimpleBalance(selectedWalletId);
+    updateSimpleNetworkBadge(selectedWalletId);
     updateSimpleTransactionList(selectedWalletId);
     updateReceiveAddress(selectedWalletId);
   }
@@ -133,6 +134,35 @@ function updateSimpleBalance(walletId) {
 
   const zec = total / 100000000;
   balanceEl.textContent = zec.toFixed(8).replace(/\.?0+$/, "") || "0";
+}
+
+function updateSimpleNetworkBadge(walletId) {
+  const badge = document.getElementById("simpleNetworkBadge");
+  if (!badge) return;
+
+  if (!walletId) {
+    badge.classList.add("d-none");
+    return;
+  }
+
+  const wallets = loadWallets();
+  const wallet = wallets.find((w) => w.id === walletId);
+
+  if (!wallet) {
+    badge.classList.add("d-none");
+    return;
+  }
+
+  const network = wallet.network || "testnet";
+  badge.classList.remove("d-none", "bg-secondary", "bg-success", "bg-warning");
+
+  if (network === "mainnet") {
+    badge.textContent = "Mainnet";
+    badge.classList.add("bg-success");
+  } else {
+    badge.textContent = "Testnet";
+    badge.classList.add("bg-warning", "text-dark");
+  }
 }
 
 function updateSimpleTransactionList(walletId) {
@@ -470,6 +500,7 @@ export function initViewModeUI() {
         localStorage.setItem(STORAGE_KEYS.selectedWallet, walletId);
       }
       updateSimpleBalance(walletId);
+      updateSimpleNetworkBadge(walletId);
       updateSimpleTransactionList(walletId);
       updateReceiveAddress(walletId);
     });
