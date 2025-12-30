@@ -567,9 +567,9 @@ export function initViewModeUI() {
       if (addressInput) {
         const wallet = getSelectedWallet();
         if (wallet && wallet.network === "mainnet") {
-          addressInput.placeholder = "t1... (transparent address)";
+          addressInput.placeholder = "t1... or u1...";
         } else {
-          addressInput.placeholder = "tm... (transparent address)";
+          addressInput.placeholder = "tm... or utest1...";
         }
       }
     });
