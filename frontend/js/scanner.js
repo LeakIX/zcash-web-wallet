@@ -367,8 +367,8 @@ export function updateNotesDisplay() {
   }
 
   notes.sort((a, b) => {
-    if (a.spentTxid && !b.spentTxid) return 1;
-    if (!a.spentTxid && b.spentTxid) return -1;
+    if (a.spent_txid && !b.spent_txid) return 1;
+    if (!a.spent_txid && b.spent_txid) return -1;
     return b.value - a.value;
   });
 
@@ -388,12 +388,14 @@ export function updateNotesDisplay() {
 
   for (const note of notes) {
     const poolClass = getPoolColorClass(note.pool);
-    const statusBadge = note.spentTxid
-      ? '<span class="badge bg-danger">Spent</span>'
+    const isSpent = !!note.spent_txid;
+    const statusBadge = isSpent
+      ? '<span class="badge bg-secondary">Spent</span>'
       : '<span class="badge bg-success">Unspent</span>';
+    const rowClass = isSpent ? "text-muted text-decoration-line-through" : "";
 
     html += `
-      <tr class="${note.spentTxid ? "text-muted" : ""}">
+      <tr class="${rowClass}">
         <td><span class="${poolClass}">${note.pool}</span></td>
         <td>${note.value > 0 ? formatZatoshi(note.value) + " ZEC" : "-"}</td>
         <td>${note.memo ? escapeHtml(note.memo.slice(0, 30)) + (note.memo.length > 30 ? "..." : "") : "-"}</td>
