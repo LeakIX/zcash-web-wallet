@@ -234,49 +234,87 @@
               ></button>
             </div>
             <div class="modal-body">
-              <p class="text-body-secondary mb-3 text-center">
-                Share an address to receive ZEC
-              </p>
+              <!-- Address Type Tabs -->
+              <ul class="nav nav-pills nav-fill mb-3" role="tablist">
+                <li class="nav-item" role="presentation">
+                  <button
+                    class="nav-link active"
+                    id="unified-tab"
+                    data-bs-toggle="pill"
+                    data-bs-target="#unified-pane"
+                    type="button"
+                    role="tab"
+                    aria-controls="unified-pane"
+                    aria-selected="true"
+                  >
+                    <i class="bi bi-shield-check me-1"></i>Unified
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button
+                    class="nav-link"
+                    id="transparent-tab"
+                    data-bs-toggle="pill"
+                    data-bs-target="#transparent-pane"
+                    type="button"
+                    role="tab"
+                    aria-controls="transparent-pane"
+                    aria-selected="false"
+                  >
+                    <i class="bi bi-eye me-1"></i>Transparent
+                  </button>
+                </li>
+              </ul>
 
-              <!-- Unified Address -->
-              <div class="mb-3">
-                <label class="form-label small fw-semibold">
-                  <i class="bi bi-shield-check me-1"></i>Unified Address
-                  (Recommended)
-                </label>
+              <!-- Tab Content -->
+              <div class="tab-content">
+                <!-- Unified Address Pane -->
                 <div
-                  id="receiveUnifiedAddressDisplay"
-                  class="mono small bg-body-tertiary p-3 rounded text-break"
-                  style="word-break: break-all"
+                  class="tab-pane fade show active"
+                  id="unified-pane"
+                  role="tabpanel"
+                  aria-labelledby="unified-tab"
                 >
-                  No wallet selected
+                  <div
+                    id="receiveUnifiedAddressDisplay"
+                    class="mono small bg-body-tertiary p-3 rounded text-break text-center"
+                    style="word-break: break-all"
+                  >
+                    No wallet selected
+                  </div>
+                  <div class="text-center mt-3">
+                    <button
+                      class="btn btn-outline-primary"
+                      id="copyUnifiedAddressBtn"
+                    >
+                      <i class="bi bi-clipboard me-1"></i>Copy Address
+                    </button>
+                  </div>
                 </div>
-                <button
-                  class="btn btn-outline-primary btn-sm mt-2"
-                  id="copyUnifiedAddressBtn"
-                >
-                  <i class="bi bi-clipboard me-1"></i>Copy Unified
-                </button>
-              </div>
 
-              <!-- Transparent Address -->
-              <div>
-                <label class="form-label small fw-semibold">
-                  <i class="bi bi-eye me-1"></i>Transparent Address
-                </label>
+                <!-- Transparent Address Pane -->
                 <div
-                  id="receiveTransparentAddressDisplay"
-                  class="mono small bg-body-tertiary p-3 rounded text-break"
-                  style="word-break: break-all"
+                  class="tab-pane fade"
+                  id="transparent-pane"
+                  role="tabpanel"
+                  aria-labelledby="transparent-tab"
                 >
-                  No wallet selected
+                  <div
+                    id="receiveTransparentAddressDisplay"
+                    class="mono small bg-body-tertiary p-3 rounded text-break text-center"
+                    style="word-break: break-all"
+                  >
+                    No wallet selected
+                  </div>
+                  <div class="text-center mt-3">
+                    <button
+                      class="btn btn-outline-primary"
+                      id="copyTransparentAddressBtn"
+                    >
+                      <i class="bi bi-clipboard me-1"></i>Copy Address
+                    </button>
+                  </div>
                 </div>
-                <button
-                  class="btn btn-outline-secondary btn-sm mt-2"
-                  id="copyTransparentAddressBtn"
-                >
-                  <i class="bi bi-clipboard me-1"></i>Copy Transparent
-                </button>
               </div>
             </div>
           </div>

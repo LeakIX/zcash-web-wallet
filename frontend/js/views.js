@@ -546,7 +546,7 @@ export function initViewModeUI() {
           '<i class="bi bi-check me-1"></i>Copied!';
         setTimeout(() => {
           copyUnifiedAddressBtn.innerHTML =
-            '<i class="bi bi-clipboard me-1"></i>Copy Unified';
+            '<i class="bi bi-clipboard me-1"></i>Copy Address';
         }, 2000);
       }
     });
@@ -571,7 +571,7 @@ export function initViewModeUI() {
           '<i class="bi bi-check me-1"></i>Copied!';
         setTimeout(() => {
           copyTransparentAddressBtn.innerHTML =
-            '<i class="bi bi-clipboard me-1"></i>Copy Transparent';
+            '<i class="bi bi-clipboard me-1"></i>Copy Address';
         }, 2000);
       }
     });
