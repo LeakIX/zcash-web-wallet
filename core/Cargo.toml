@@ -11,7 +11,7 @@ orchard.workspace = true
 zcash_address.workspace = true
 zcash_keys = { workspace = true, features = ["transparent-inputs", "sapling", "orchard"] }
 zcash_note_encryption.workspace = true
-zcash_primitives.workspace = true
+zcash_primitives = { workspace = true, features = ["circuits"] }
 zcash_protocol.workspace = true
 zcash_transparent = { workspace = true, features = ["transparent-inputs"] }
 zip32.workspace = true

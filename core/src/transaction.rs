@@ -3,13 +3,17 @@
 //! This module provides functionality to build and sign transparent (t-address)
 //! transactions. Shielded transaction signing (Sapling/Orchard) is not yet
 //! supported due to the computational cost of proof generation in WASM.
+//!
+//! The signing process follows ZIP 244 for transaction signature hashes.
 
 use bip39::{Language, Mnemonic};
 use serde::{Deserialize, Serialize};
 use zcash_keys::encoding::AddressCodec;
 use zcash_keys::keys::UnifiedSpendingKey;
-use zcash_primitives::transaction::TxId;
-use zcash_protocol::consensus::Network;
+use zcash_primitives::transaction::sighash::{SignableInput, signature_hash};
+use zcash_primitives::transaction::txid::TxIdDigester;
+use zcash_primitives::transaction::{TransactionData, TxId, TxVersion};
+use zcash_protocol::consensus::{BlockHeight, BranchId, Network};
 use zcash_protocol::value::Zatoshis;
 use zcash_transparent::address::TransparentAddress;
 use zcash_transparent::builder::{TransparentBuilder, TransparentSigningSet};
@@ -396,9 +400,8 @@ pub fn build_unsigned_transaction(
 
 /// Build and sign a transparent transaction.
 ///
-/// Note: This function is currently limited. Full transparent transaction signing
-/// requires computing sighashes according to ZIP 244, which requires the full
-/// transaction context. This will be implemented in a future version.
+/// This creates a fully signed v5 transaction that can be broadcast to the network.
+/// The transaction only contains transparent inputs and outputs (no shielded components).
 ///
 /// # Arguments
 ///
@@ -408,10 +411,11 @@ pub fn build_unsigned_transaction(
 /// * `utxos` - The UTXOs to spend
 /// * `recipients` - The recipients and amounts
 /// * `fee` - The transaction fee in zatoshis
+/// * `expiry_height` - Block height after which the transaction expires (0 for no expiry)
 ///
 /// # Returns
 ///
-/// A `SignedTransaction` containing the signed transaction hex.
+/// A `SignedTransaction` containing the signed transaction hex and metadata.
 pub fn build_transparent_transaction(
     seed_phrase: &str,
     network: Network,
@@ -419,35 +423,223 @@ pub fn build_transparent_transaction(
     utxos: Vec<Utxo>,
     recipients: Vec<Recipient>,
     fee: u64,
+    expiry_height: u32,
 ) -> Result<SignedTransaction, TransactionError> {
     // Build the unsigned transaction
     let unsigned =
         build_unsigned_transaction(seed_phrase, network, account, utxos, recipients, fee)?;
 
-    // Note: Full signing requires integrating with zcash_primitives transaction builder
-    // or implementing the ZIP 244 sighash computation manually.
-    //
-    // The transparent bundle's apply_signatures() method requires a sighash calculator
-    // that needs the full transaction context (version, lock_time, expiry_height, etc.)
-    // which is not available when building just the transparent component.
-    //
-    // Options for completing this implementation:
-    // 1. Use zcash_primitives::transaction::builder::Builder with mock provers
-    // 2. Implement ZIP 244 sighash computation for transparent-only v5 transactions
-    // 3. Wait for upstream support for transparent-only transaction building
-    //
-    // For now, return an informative error.
+    // Get the consensus branch ID for the network
+    // Use NU6 (latest network upgrade) for mainnet, NU6 for testnet as well
+    let branch_id = BranchId::Nu6;
+    let lock_time = 0; // No time lock
 
-    Err(TransactionError::BuildFailed(format!(
-        "Transaction building succeeded (inputs: {} zatoshis, outputs: {} zatoshis, fee: {} zatoshis), \
-             but signing is not yet fully implemented. \
-             The transparent bundle has been constructed with {} inputs and outputs are ready. \
-             Full signing requires ZIP 244 sighash computation which is tracked in issue #70.",
-        unsigned.total_input,
-        unsigned.total_output,
-        unsigned.fee,
-        unsigned.bundle.vin.len()
-    )))
+    // Create the unsigned TransactionData with only transparent bundle
+    let unauthed_tx: TransactionData<zcash_primitives::transaction::Unauthorized> =
+        TransactionData::from_parts(
+            TxVersion::V5,
+            branch_id,
+            lock_time,
+            BlockHeight::from_u32(expiry_height),
+            Some(unsigned.bundle.clone()),
+            None, // No Sprout bundle
+            None, // No Sapling bundle
+            None, // No Orchard bundle
+        );
+
+    // Compute the transaction ID parts for sighash computation
+    let txid_parts = unauthed_tx.digest(TxIdDigester);
+
+    // Sign the transparent bundle
+    let signed_bundle = unsigned
+        .bundle
+        .apply_signatures(
+            |input| {
+                *signature_hash(
+                    &unauthed_tx,
+                    &SignableInput::Transparent(input),
+                    &txid_parts,
+                )
+                .as_ref()
+            },
+            &unsigned.signing_set,
+        )
+        .map_err(|e| TransactionError::SigningFailed(format!("{:?}", e)))?;
+
+    // Create the final signed transaction
+    let signed_tx: TransactionData<zcash_primitives::transaction::Authorized> =
+        TransactionData::from_parts(
+            TxVersion::V5,
+            branch_id,
+            lock_time,
+            BlockHeight::from_u32(expiry_height),
+            Some(signed_bundle),
+            None, // No Sprout bundle
+            None, // No Sapling bundle
+            None, // No Orchard bundle
+        );
+
+    // Compute the transaction ID
+    let txid_parts_signed = signed_tx.digest(TxIdDigester);
+    let hash_bytes: &[u8] = txid_parts_signed.header_digest.as_bytes();
+    let mut txid_bytes = [0u8; 32];
+    txid_bytes.copy_from_slice(hash_bytes);
+    let txid = TxId::from_bytes(txid_bytes);
+
+    // Serialize the transaction to bytes
+    let tx_bytes = serialize_transaction(&signed_tx)?;
+    let tx_hex = hex::encode(&tx_bytes);
+
+    Ok(SignedTransaction {
+        tx_hex,
+        txid: hex::encode(txid.as_ref()),
+        total_input: unsigned.total_input,
+        total_output: unsigned.total_output,
+        fee: unsigned.fee,
+    })
+}
+
+/// Serialize a signed transaction to bytes.
+fn serialize_transaction(
+    tx: &TransactionData<zcash_primitives::transaction::Authorized>,
+) -> Result<Vec<u8>, TransactionError> {
+    use std::io::Write;
+
+    let mut bytes = Vec::new();
+
+    // Write transaction version (v5 = 0x05 with overwinter flag)
+    // v5 transactions have header = 0x050000080 (little-endian)
+    let version_header: u32 = 0x80000005; // Overwinter flag (0x80000000) | version 5
+    bytes
+        .write_all(&version_header.to_le_bytes())
+        .map_err(|e| TransactionError::BuildFailed(format!("Failed to write version: {}", e)))?;
+
+    // Write nVersionGroupId for v5 (ZIP 225)
+    let version_group_id: u32 = 0x26A7270A;
+    bytes
+        .write_all(&version_group_id.to_le_bytes())
+        .map_err(|e| {
+            TransactionError::BuildFailed(format!("Failed to write version group id: {}", e))
+        })?;
+
+    // Write consensus branch ID
+    let branch_id: u32 = u32::from(BranchId::Nu6);
+    bytes
+        .write_all(&branch_id.to_le_bytes())
+        .map_err(|e| TransactionError::BuildFailed(format!("Failed to write branch id: {}", e)))?;
+
+    // Write lock time
+    let lock_time: u32 = 0;
+    bytes
+        .write_all(&lock_time.to_le_bytes())
+        .map_err(|e| TransactionError::BuildFailed(format!("Failed to write lock time: {}", e)))?;
+
+    // Write expiry height
+    let expiry_height: u32 = tx.expiry_height().into();
+    bytes.write_all(&expiry_height.to_le_bytes()).map_err(|e| {
+        TransactionError::BuildFailed(format!("Failed to write expiry height: {}", e))
+    })?;
+
+    // Write transparent bundle
+    if let Some(bundle) = tx.transparent_bundle() {
+        // Write vin count (CompactSize)
+        write_compact_size(&mut bytes, bundle.vin.len())?;
+
+        // Write each input
+        for vin in &bundle.vin {
+            // Write prevout txid (32 bytes)
+            let prevout = vin.prevout();
+            let txid_bytes: &[u8; 32] = prevout.txid().as_ref();
+            bytes.write_all(txid_bytes).map_err(|e| {
+                TransactionError::BuildFailed(format!("Failed to write input txid: {}", e))
+            })?;
+
+            // Write prevout index
+            bytes.write_all(&prevout.n().to_le_bytes()).map_err(|e| {
+                TransactionError::BuildFailed(format!("Failed to write input index: {}", e))
+            })?;
+
+            // Write scriptSig
+            let script_sig = vin.script_sig();
+            write_compact_size(&mut bytes, script_sig.0.0.len())?;
+            bytes.write_all(&script_sig.0.0).map_err(|e| {
+                TransactionError::BuildFailed(format!("Failed to write scriptSig: {}", e))
+            })?;
+
+            // Write sequence
+            bytes
+                .write_all(&vin.sequence().to_le_bytes())
+                .map_err(|e| {
+                    TransactionError::BuildFailed(format!("Failed to write sequence: {}", e))
+                })?;
+        }
+
+        // Write vout count (CompactSize)
+        write_compact_size(&mut bytes, bundle.vout.len())?;
+
+        // Write each output
+        for vout in &bundle.vout {
+            // Write value (8 bytes)
+            bytes
+                .write_all(&u64::from(vout.value()).to_le_bytes())
+                .map_err(|e| {
+                    TransactionError::BuildFailed(format!("Failed to write output value: {}", e))
+                })?;
+
+            // Write scriptPubKey
+            let script_pubkey = vout.script_pubkey();
+            write_compact_size(&mut bytes, script_pubkey.0.0.len())?;
+            bytes.write_all(&script_pubkey.0.0).map_err(|e| {
+                TransactionError::BuildFailed(format!("Failed to write scriptPubKey: {}", e))
+            })?;
+        }
+    } else {
+        // Empty transparent bundle
+        write_compact_size(&mut bytes, 0)?; // vin count
+        write_compact_size(&mut bytes, 0)?; // vout count
+    }
+
+    // Write empty Sapling bundle (nSpendsSapling = 0, nOutputsSapling = 0)
+    write_compact_size(&mut bytes, 0)?; // nSpendsSapling
+    write_compact_size(&mut bytes, 0)?; // nOutputsSapling
+
+    // Write empty Orchard bundle (nActionsOrchard = 0)
+    write_compact_size(&mut bytes, 0)?; // nActionsOrchard
+
+    Ok(bytes)
+}
+
+/// Write a CompactSize integer.
+fn write_compact_size(bytes: &mut Vec<u8>, n: usize) -> Result<(), TransactionError> {
+    use std::io::Write;
+
+    if n < 253 {
+        bytes.write_all(&[n as u8]).map_err(|e| {
+            TransactionError::BuildFailed(format!("Failed to write compact size: {}", e))
+        })?;
+    } else if n <= 0xFFFF {
+        bytes.write_all(&[253]).map_err(|e| {
+            TransactionError::BuildFailed(format!("Failed to write compact size: {}", e))
+        })?;
+        bytes.write_all(&(n as u16).to_le_bytes()).map_err(|e| {
+            TransactionError::BuildFailed(format!("Failed to write compact size: {}", e))
+        })?;
+    } else if n <= 0xFFFFFFFF {
+        bytes.write_all(&[254]).map_err(|e| {
+            TransactionError::BuildFailed(format!("Failed to write compact size: {}", e))
+        })?;
+        bytes.write_all(&(n as u32).to_le_bytes()).map_err(|e| {
+            TransactionError::BuildFailed(format!("Failed to write compact size: {}", e))
+        })?;
+    } else {
+        bytes.write_all(&[255]).map_err(|e| {
+            TransactionError::BuildFailed(format!("Failed to write compact size: {}", e))
+        })?;
+        bytes.write_all(&(n as u64).to_le_bytes()).map_err(|e| {
+            TransactionError::BuildFailed(format!("Failed to write compact size: {}", e))
+        })?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -512,6 +704,7 @@ mod tests {
             utxos,
             recipients,
             1000,
+            0, // No expiry
         );
 
         match result {
@@ -672,5 +865,61 @@ mod tests {
         let utxos = Utxo::from_stored_notes(&notes);
         assert_eq!(utxos.len(), 1);
         assert_eq!(utxos[0].txid, "tx1");
+    }
+
+    #[test]
+    fn test_build_signed_transaction() {
+        // Derive an address first
+        let addresses = crate::wallet::derive_transparent_addresses(
+            TEST_SEED_PHRASE,
+            Network::TestNetwork,
+            0,
+            0,
+            1,
+        )
+        .unwrap();
+
+        let utxos = vec![Utxo {
+            txid: "0000000000000000000000000000000000000000000000000000000000000001".to_string(),
+            vout: 0,
+            value: 100000,
+            address: addresses[0].clone(),
+            script_pubkey: None,
+        }];
+
+        let recipients = vec![Recipient {
+            address: addresses[0].clone(), // Send to self for testing
+            amount: 50000,
+        }];
+
+        let result = build_transparent_transaction(
+            TEST_SEED_PHRASE,
+            Network::TestNetwork,
+            0,
+            utxos,
+            recipients,
+            10000,
+            0, // No expiry
+        );
+
+        // The transaction should be successfully built and signed
+        assert!(result.is_ok(), "Transaction signing failed: {:?}", result);
+        let signed = result.unwrap();
+
+        // Verify transaction metadata
+        assert_eq!(signed.total_input, 100000);
+        assert_eq!(signed.total_output, 50000);
+        assert_eq!(signed.fee, 10000);
+
+        // Verify we got a hex-encoded transaction
+        assert!(!signed.tx_hex.is_empty());
+        assert!(
+            hex::decode(&signed.tx_hex).is_ok(),
+            "tx_hex is not valid hex"
+        );
+
+        // Verify txid is a valid 32-byte hex
+        assert_eq!(signed.txid.len(), 64);
+        assert!(hex::decode(&signed.txid).is_ok(), "txid is not valid hex");
     }
 }
