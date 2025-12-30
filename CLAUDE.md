@@ -87,7 +87,7 @@ Browser                                        Zcash Node
 
 ### Formatting
 
-- Run `make format` before committing
+- **Always run `make format` before every commit and push**
 - Rust: `cargo +nightly fmt`
 - JS/HTML: `prettier --write`
 - Sass: indented syntax has strict formatting rules (no automated formatter)
@@ -112,6 +112,8 @@ Note: `make test` runs both `make test-rust` (unit tests for core, wasm, cli) an
 ### Changelog
 
 - **Every bug fix or feature must have a CHANGELOG.md entry**
+- **CHANGELOG entry must be in a separate commit** from the code changes
+- **Always include issue and PR references** in the entry: `([#issue](url), [#PR](url))`
 - Follow [Keep a Changelog](https://keepachangelog.com/) format
 - Add entries under `## [Unreleased]` section
 - Categories: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`

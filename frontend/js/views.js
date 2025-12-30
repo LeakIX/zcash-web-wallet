@@ -241,11 +241,18 @@ function updateSimpleTransactionList(walletId) {
 }
 
 export function updateReceiveAddress(walletId) {
-  const addressDisplay = document.getElementById("receiveAddressDisplay");
-  if (!addressDisplay) return;
+  const unifiedDisplay = document.getElementById(
+    "receiveUnifiedAddressDisplay"
+  );
+  const transparentDisplay = document.getElementById(
+    "receiveTransparentAddressDisplay"
+  );
+
+  if (!unifiedDisplay || !transparentDisplay) return;
 
   if (!walletId) {
-    addressDisplay.textContent = "No wallet selected";
+    unifiedDisplay.textContent = "No wallet selected";
+    transparentDisplay.textContent = "No wallet selected";
     return;
   }
 
@@ -253,13 +260,14 @@ export function updateReceiveAddress(walletId) {
   const wallet = wallets.find((w) => w.id === walletId);
 
   if (!wallet) {
-    addressDisplay.textContent = "Wallet not found";
+    unifiedDisplay.textContent = "Wallet not found";
+    transparentDisplay.textContent = "Wallet not found";
     return;
   }
 
-  const address =
-    wallet.unified_address || wallet.transparent_address || "No address";
-  addressDisplay.textContent = address;
+  unifiedDisplay.textContent = wallet.unified_address || "No unified address";
+  transparentDisplay.textContent =
+    wallet.transparent_address || "No transparent address";
 }
 
 // Get default RPC endpoint for a network
@@ -519,21 +527,50 @@ export function initViewModeUI() {
     });
   }
 
-  const copyReceiveAddressBtn = document.getElementById(
-    "copyReceiveAddressBtn"
+  // Copy unified address button
+  const copyUnifiedAddressBtn = document.getElementById(
+    "copyUnifiedAddressBtn"
   );
-  if (copyReceiveAddressBtn) {
-    copyReceiveAddressBtn.addEventListener("click", () => {
-      const addressDisplay = document.getElementById("receiveAddressDisplay");
+  if (copyUnifiedAddressBtn) {
+    copyUnifiedAddressBtn.addEventListener("click", () => {
+      const addressDisplay = document.getElementById(
+        "receiveUnifiedAddressDisplay"
+      );
       if (
         addressDisplay &&
-        addressDisplay.textContent !== "No wallet selected"
+        addressDisplay.textContent !== "No wallet selected" &&
+        addressDisplay.textContent !== "No unified address"
       ) {
         navigator.clipboard.writeText(addressDisplay.textContent);
-        copyReceiveAddressBtn.innerHTML =
+        copyUnifiedAddressBtn.innerHTML =
           '<i class="bi bi-check me-1"></i>Copied!';
         setTimeout(() => {
-          copyReceiveAddressBtn.innerHTML =
+          copyUnifiedAddressBtn.innerHTML =
+            '<i class="bi bi-clipboard me-1"></i>Copy Address';
+        }, 2000);
+      }
+    });
+  }
+
+  // Copy transparent address button
+  const copyTransparentAddressBtn = document.getElementById(
+    "copyTransparentAddressBtn"
+  );
+  if (copyTransparentAddressBtn) {
+    copyTransparentAddressBtn.addEventListener("click", () => {
+      const addressDisplay = document.getElementById(
+        "receiveTransparentAddressDisplay"
+      );
+      if (
+        addressDisplay &&
+        addressDisplay.textContent !== "No wallet selected" &&
+        addressDisplay.textContent !== "No transparent address"
+      ) {
+        navigator.clipboard.writeText(addressDisplay.textContent);
+        copyTransparentAddressBtn.innerHTML =
+          '<i class="bi bi-check me-1"></i>Copied!';
+        setTimeout(() => {
+          copyTransparentAddressBtn.innerHTML =
             '<i class="bi bi-clipboard me-1"></i>Copy Address';
         }, 2000);
       }
