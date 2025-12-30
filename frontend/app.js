@@ -2993,5 +2993,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   initScannerUI();
   initAddressViewerUI();
   initSendUI();
-  await initWasm();
+  const wasmLoaded = await initWasm();
+
+  // Load persisted data after WASM is ready
+  if (wasmLoaded) {
+    updateBalanceDisplay();
+    updateLedgerDisplay();
+    updateNotesDisplay();
+  }
 });
