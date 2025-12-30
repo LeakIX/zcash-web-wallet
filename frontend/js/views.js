@@ -1,7 +1,7 @@
 // Zcash Web Wallet - View Modes Module
 
 import { STORAGE_KEYS, VIEW_MODES } from "./constants.js";
-import { loadWallets } from "./storage/wallets.js";
+import { loadWallets, getSelectedWallet } from "./storage/wallets.js";
 import { loadNotes, getAllNotes } from "./storage/notes.js";
 import { loadLedger } from "./storage/ledger.js";
 import { loadEndpoints } from "./storage/endpoints.js";
@@ -555,12 +555,23 @@ export function initViewModeUI() {
     simpleSendConfirmBtn.addEventListener("click", handleSimpleSend);
   }
 
-  // Clear send error when modal opens
+  // Clear send error and set placeholder when modal opens
   const sendModal = document.getElementById("sendModal");
   if (sendModal) {
     sendModal.addEventListener("show.bs.modal", () => {
       const errorDiv = document.getElementById("simpleSendError");
       if (errorDiv) errorDiv.classList.add("d-none");
+
+      // Update placeholder based on wallet network
+      const addressInput = document.getElementById("simpleSendAddress");
+      if (addressInput) {
+        const wallet = getSelectedWallet();
+        if (wallet && wallet.network === "mainnet") {
+          addressInput.placeholder = "t1... (transparent address)";
+        } else {
+          addressInput.placeholder = "tm... (transparent address)";
+        }
+      }
     });
   }
 
