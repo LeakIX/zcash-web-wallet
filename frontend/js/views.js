@@ -4,6 +4,7 @@ import { STORAGE_KEYS, VIEW_MODES } from "./constants.js";
 import { loadWallets } from "./storage/wallets.js";
 import { loadNotes } from "./storage/notes.js";
 import { loadLedger } from "./storage/ledger.js";
+import { renderTxidLink } from "./utils.js";
 
 // Get current view mode
 export function getViewMode() {
@@ -145,6 +146,10 @@ function updateSimpleTransactionList(walletId) {
     return;
   }
 
+  const wallets = loadWallets();
+  const wallet = wallets.find((w) => w.id === walletId);
+  const network = wallet?.network || "mainnet";
+
   const ledger = loadLedger();
   const walletEntries = (ledger.entries || []).filter(
     (entry) => entry.wallet_id === walletId
@@ -172,8 +177,11 @@ function updateSimpleTransactionList(walletId) {
       const sign = isIncoming ? "+" : "";
       const zec = (entry.net_change || 0) / 100000000;
       const dateStr = entry.timestamp
-        ? new Date(entry.timestamp).toLocaleDateString()
+        ? new Date(entry.timestamp).toLocaleString()
         : "Unknown";
+      const txidLink = entry.txid
+        ? renderTxidLink(entry.txid, network, 6, 4)
+        : "";
 
       return `
         <div class="list-group-item d-flex justify-content-between align-items-center">
@@ -182,6 +190,7 @@ function updateSimpleTransactionList(walletId) {
             <div>
               <div class="fw-semibold">${isIncoming ? "Received" : "Sent"}</div>
               <small class="text-body-secondary">${dateStr}</small>
+              ${txidLink ? `<div class="small">${txidLink}</div>` : ""}
             </div>
           </div>
           <div class="text-end">
