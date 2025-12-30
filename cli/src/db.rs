@@ -1,4 +1,4 @@
-//! SQLite database module for storing notes and nullifiers.
+//! SQLite database module for storing notes, nullifiers, and ledger entries.
 
 use crate::error::{CliError, Result};
 use rusqlite::{Connection, params};
@@ -19,6 +19,23 @@ pub struct Note {
     pub address: Option<String>,
     pub height: Option<i64>,
     pub spent_txid: Option<String>,
+}
+
+/// Represents a ledger entry (transaction-level view).
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct LedgerEntry {
+    pub id: i64,
+    pub txid: String,
+    pub height: Option<i64>,
+    pub timestamp: Option<String>,
+    pub value_received: i64,
+    pub value_spent: i64,
+    pub net_change: i64,
+    pub fee_paid: i64,
+    pub primary_pool: String,
+    pub memos: Option<String>,
+    pub created_at: String,
 }
 
 /// Database handle for note storage.
@@ -74,6 +91,22 @@ impl Database {
 
             CREATE INDEX IF NOT EXISTS idx_nullifier ON notes(nullifier);
             CREATE INDEX IF NOT EXISTS idx_spent ON notes(spent_txid);
+
+            CREATE TABLE IF NOT EXISTS ledger (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                txid TEXT NOT NULL UNIQUE,
+                height INTEGER,
+                timestamp TEXT,
+                value_received INTEGER NOT NULL DEFAULT 0,
+                value_spent INTEGER NOT NULL DEFAULT 0,
+                net_change INTEGER NOT NULL DEFAULT 0,
+                fee_paid INTEGER NOT NULL DEFAULT 0,
+                primary_pool TEXT NOT NULL DEFAULT 'unknown',
+                memos TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_ledger_height ON ledger(height);
             "#,
             )
             .map_err(|e| {
@@ -243,6 +276,117 @@ impl Database {
             .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
             .collect::<std::result::Result<Vec<_>, _>>()?;
         Ok(balances)
+    }
+
+    // =========================================================================
+    // Ledger methods
+    // =========================================================================
+
+    /// Insert or update a ledger entry. Returns Ok(true) if inserted, Ok(false) if updated.
+    #[allow(clippy::too_many_arguments)]
+    pub fn upsert_ledger_entry(
+        &self,
+        txid: &str,
+        height: Option<i64>,
+        value_received: i64,
+        value_spent: i64,
+        net_change: i64,
+        fee_paid: i64,
+        primary_pool: &str,
+        memos: Option<&str>,
+    ) -> Result<bool> {
+        let result = self.conn.execute(
+            r#"
+            INSERT INTO ledger
+            (txid, height, value_received, value_spent, net_change, fee_paid, primary_pool, memos)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+            ON CONFLICT(txid) DO UPDATE SET
+                height = COALESCE(?2, height),
+                value_received = ?3,
+                value_spent = ?4,
+                net_change = ?5,
+                fee_paid = ?6,
+                primary_pool = ?7,
+                memos = COALESCE(?8, memos)
+            "#,
+            params![
+                txid,
+                height,
+                value_received,
+                value_spent,
+                net_change,
+                fee_paid,
+                primary_pool,
+                memos,
+            ],
+        )?;
+        Ok(result > 0)
+    }
+
+    /// Get all ledger entries.
+    pub fn get_ledger_entries(&self) -> Result<Vec<LedgerEntry>> {
+        let mut stmt = self.conn.prepare(
+            r#"
+            SELECT id, txid, height, timestamp, value_received, value_spent,
+                   net_change, fee_paid, primary_pool, memos, created_at
+            FROM ledger
+            ORDER BY created_at DESC, id DESC
+            "#,
+        )?;
+        let entries = stmt
+            .query_map([], |row| {
+                Ok(LedgerEntry {
+                    id: row.get(0)?,
+                    txid: row.get(1)?,
+                    height: row.get(2)?,
+                    timestamp: row.get(3)?,
+                    value_received: row.get(4)?,
+                    value_spent: row.get(5)?,
+                    net_change: row.get(6)?,
+                    fee_paid: row.get(7)?,
+                    primary_pool: row.get(8)?,
+                    memos: row.get(9)?,
+                    created_at: row.get(10)?,
+                })
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        Ok(entries)
+    }
+
+    /// Get ledger balance (sum of net changes).
+    pub fn get_ledger_balance(&self) -> Result<i64> {
+        let balance: i64 = self.conn.query_row(
+            "SELECT COALESCE(SUM(net_change), 0) FROM ledger",
+            [],
+            |row| row.get(0),
+        )?;
+        Ok(balance)
+    }
+
+    /// Export ledger as CSV.
+    pub fn export_ledger_csv(&self) -> Result<String> {
+        let entries = self.get_ledger_entries()?;
+        let mut csv = String::from(
+            "txid,height,timestamp,value_received,value_spent,net_change,fee_paid,primary_pool,memos,created_at\n",
+        );
+
+        for entry in entries {
+            csv.push_str(&format!(
+                "{},{},{},{},{},{},{},{},{},{}\n",
+                entry.txid,
+                entry.height.map_or(String::new(), |h| h.to_string()),
+                entry.timestamp.unwrap_or_default(),
+                entry.value_received,
+                entry.value_spent,
+                entry.net_change,
+                entry.fee_paid,
+                entry.primary_pool,
+                entry.memos.unwrap_or_default().replace(',', ";"),
+                entry.created_at,
+            ));
+        }
+
+        Ok(csv)
     }
 }
 

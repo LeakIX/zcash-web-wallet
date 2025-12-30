@@ -11,6 +11,7 @@ const STORAGE_KEYS = {
   scanViewingKey: "zcash_viewer_scan_viewing_key",
   wallets: "zcash_viewer_wallets",
   selectedWallet: "zcash_viewer_selected_wallet",
+  ledger: "zcash_viewer_ledger",
 };
 
 // Default RPC endpoints (users can add their own)
@@ -671,8 +672,13 @@ function addNote(note, txid, walletId) {
     return false;
   }
 
+  if (!createResult.data) {
+    console.error("Failed to create stored note: data is undefined");
+    return false;
+  }
+
   // add_note_to_list expects raw StoredNote JSON, not wrapped in StorageResult
-  const storedNoteJson = JSON.stringify(createResult.result);
+  const storedNoteJson = JSON.stringify(createResult.data);
 
   // Add note to list (handles duplicates)
   const resultJson = wasmModule.add_note_to_list(notesJson, storedNoteJson);
@@ -792,6 +798,146 @@ function getBalanceByPool() {
 
 function clearNotes() {
   localStorage.removeItem(STORAGE_KEYS.notes);
+}
+
+// ===========================================================================
+// Ledger Storage (localStorage) - Uses WASM bindings for type-safe operations
+// ===========================================================================
+
+function loadLedger() {
+  const stored = localStorage.getItem(STORAGE_KEYS.ledger);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return { entries: [] };
+    }
+  }
+  return { entries: [] };
+}
+
+function saveLedger(ledger) {
+  localStorage.setItem(STORAGE_KEYS.ledger, JSON.stringify(ledger));
+}
+
+function createLedgerEntry(scanResult, walletId) {
+  if (!wasmModule) {
+    console.error("WASM module not loaded");
+    return null;
+  }
+
+  const scanResultJson = JSON.stringify(scanResult);
+
+  const resultJson = wasmModule.create_ledger_entry(scanResultJson, walletId);
+
+  try {
+    const result = JSON.parse(resultJson);
+    if (result.success && result.entry) {
+      return result.entry;
+    }
+    console.error("Failed to create ledger entry:", result.error);
+    return null;
+  } catch (error) {
+    console.error("Failed to parse ledger entry result:", error);
+    return null;
+  }
+}
+
+function addLedgerEntry(entry) {
+  if (!wasmModule) {
+    console.error("WASM module not loaded");
+    return false;
+  }
+
+  const ledger = loadLedger();
+  const ledgerJson = JSON.stringify(ledger);
+  const entryJson = JSON.stringify(entry);
+
+  const resultJson = wasmModule.add_ledger_entry(ledgerJson, entryJson);
+
+  try {
+    const result = JSON.parse(resultJson);
+    if (result.success && result.ledger) {
+      saveLedger(result.ledger);
+      return result.is_new;
+    }
+    console.error("Failed to add ledger entry:", result.error);
+    return false;
+  } catch (error) {
+    console.error("Failed to parse add ledger entry result:", error);
+    return false;
+  }
+}
+
+function getLedgerForWallet(walletId) {
+  if (!wasmModule) {
+    console.error("WASM module not loaded");
+    return [];
+  }
+
+  const ledger = loadLedger();
+  const ledgerJson = JSON.stringify(ledger);
+
+  const resultJson = wasmModule.get_ledger_for_wallet(ledgerJson, walletId);
+
+  try {
+    const result = JSON.parse(resultJson);
+    if (result.success && result.entries) {
+      return result.entries;
+    }
+    return [];
+  } catch {
+    return [];
+  }
+}
+
+function getLedgerBalance(walletId) {
+  if (!wasmModule) {
+    console.error("WASM module not loaded");
+    return 0;
+  }
+
+  const ledger = loadLedger();
+  const ledgerJson = JSON.stringify(ledger);
+
+  const resultJson = wasmModule.compute_ledger_balance(ledgerJson, walletId);
+
+  try {
+    const result = JSON.parse(resultJson);
+    if (result.success) {
+      return result.balance || 0;
+    }
+    return 0;
+  } catch {
+    return 0;
+  }
+}
+
+function exportLedgerCsv(walletId) {
+  if (!wasmModule) {
+    console.error("WASM module not loaded");
+    return "";
+  }
+
+  const ledger = loadLedger();
+  const ledgerJson = JSON.stringify(ledger);
+
+  const resultJson = wasmModule.export_ledger_csv(ledgerJson, walletId);
+
+  try {
+    const result = JSON.parse(resultJson);
+    if (result.success && result.csv) {
+      return result.csv;
+    }
+    console.error("Failed to export ledger CSV:", result.error);
+    return "";
+  } catch {
+    return "";
+  }
+}
+
+function clearLedger() {
+  localStorage.removeItem(STORAGE_KEYS.ledger);
 }
 
 // ===========================================================================
@@ -954,10 +1100,16 @@ function initScannerUI() {
   }
   if (clearNotesBtn) {
     clearNotesBtn.addEventListener("click", () => {
-      if (confirm("Are you sure you want to clear all tracked notes?")) {
+      if (
+        confirm(
+          "Are you sure you want to clear all tracked notes and transaction history?"
+        )
+      ) {
         clearNotes();
+        clearLedger();
         updateBalanceDisplay();
         updateNotesDisplay();
+        updateLedgerDisplay();
       }
     });
   }
@@ -982,6 +1134,8 @@ function initScannerUI() {
           networkSelect.value = wallet.network;
         }
       }
+      // Update ledger display for selected wallet
+      updateLedgerDisplay();
     });
   }
 
@@ -991,6 +1145,7 @@ function initScannerUI() {
   // Initial display update
   updateBalanceDisplay();
   updateNotesDisplay();
+  updateLedgerDisplay();
 }
 
 function populateScannerWallets() {
@@ -1099,7 +1254,16 @@ async function scanTransaction() {
 
     if (result.success && result.result) {
       // Pass wallet's known transparent addresses for filtering
-      const knownAddresses = wallet.transparent_addresses || [];
+      // Note: We get wallet directly from localStorage because getWallet() goes
+      // through WASM which strips out transparent_addresses
+      const wallets = loadWallets();
+      const fullWallet = wallets.find((w) => w.id === walletId);
+      const knownAddresses = [
+        ...(fullWallet?.transparent_addresses || []),
+        ...(fullWallet?.transparent_address
+          ? [fullWallet.transparent_address]
+          : []),
+      ];
       processScanResult(result.result, walletId, knownAddresses);
     } else {
       showScanError(result.error || "Failed to scan transaction.");
@@ -1170,9 +1334,17 @@ function processScanResult(
 
   const totalSpent = shieldedSpent + transparentSpent;
 
+  // Create ledger entry from scan result
+  const ledgerEntry = createLedgerEntry(scanResult, walletId);
+  let ledgerUpdated = false;
+  if (ledgerEntry) {
+    ledgerUpdated = addLedgerEntry(ledgerEntry);
+  }
+
   // Update displays
   updateBalanceDisplay();
   updateNotesDisplay();
+  updateLedgerDisplay();
 
   // Show results
   const resultsDiv = document.getElementById("scanResults");
@@ -1191,6 +1363,7 @@ function processScanResult(
         New notes added: ${notesAdded}${notesSkipped > 0 ? ` (${notesSkipped} skipped - not ours)` : ""}<br>
         Nullifiers found: ${scanResult.spent_nullifiers.length}<br>
         Transparent spends: ${(scanResult.transparent_spends || []).length}<br>
+        Ledger entry: ${ledgerUpdated ? "Created" : ledgerEntry ? "Updated" : "Failed"}<br>
         Notes marked spent: ${totalSpent}
       </div>
     `;
@@ -1307,6 +1480,154 @@ function updateNotesDisplay() {
 
   notesDiv.innerHTML = html;
 }
+
+function updateLedgerDisplay() {
+  const ledgerDiv = document.getElementById("ledgerDisplay");
+  if (!ledgerDiv) return;
+
+  // Get selected wallet
+  const walletId = getSelectedWalletId();
+  let entries = [];
+
+  if (walletId) {
+    entries = getLedgerForWallet(walletId);
+  } else {
+    // Show all entries if no wallet selected
+    const ledger = loadLedger();
+    entries = ledger.entries || [];
+  }
+
+  if (entries.length === 0) {
+    ledgerDiv.innerHTML = `
+      <div class="text-muted text-center py-4">
+        <i class="bi bi-journal-text fs-1"></i>
+        <p>No transaction history yet. Scan transactions to build your ledger.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Sort entries by created_at descending (newest first)
+  entries.sort((a, b) => {
+    if (a.created_at && b.created_at) {
+      return b.created_at.localeCompare(a.created_at);
+    }
+    return 0;
+  });
+
+  let html = `
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="mb-0"><i class="bi bi-journal-text me-1"></i> Transaction History</h6>
+      <button class="btn btn-sm btn-outline-secondary" onclick="downloadLedgerCsv()">
+        <i class="bi bi-download me-1"></i> Export CSV
+      </button>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>TxID</th>
+            <th class="text-end">Received</th>
+            <th class="text-end">Spent</th>
+            <th class="text-end">Net</th>
+            <th>Pool</th>
+            <th>Memo</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  for (const entry of entries) {
+    const date = entry.created_at
+      ? new Date(entry.created_at).toLocaleDateString()
+      : "-";
+    const shortTxid = entry.txid ? entry.txid.slice(0, 10) + "..." : "-";
+
+    // Determine row color based on net change
+    let rowClass = "";
+    if (entry.net_change > 0) {
+      rowClass = "table-success";
+    } else if (entry.net_change < 0) {
+      rowClass = "table-danger";
+    }
+
+    // Format net change with sign
+    const netFormatted =
+      entry.net_change >= 0
+        ? `+${formatZatoshi(entry.net_change)}`
+        : formatZatoshi(entry.net_change);
+
+    // Get pool badge
+    const poolBadge = getPoolBadge(entry.primary_pool);
+
+    // Get first memo if available
+    const memo =
+      entry.memos && entry.memos.length > 0
+        ? escapeHtml(entry.memos[0].slice(0, 20)) +
+          (entry.memos[0].length > 20 ? "..." : "")
+        : "-";
+
+    html += `
+      <tr class="${rowClass}">
+        <td class="small">${date}</td>
+        <td class="mono small" title="${escapeHtml(entry.txid || "")}">${shortTxid}</td>
+        <td class="text-end text-success">${entry.value_received > 0 ? "+" + formatZatoshi(entry.value_received) : "-"}</td>
+        <td class="text-end text-danger">${entry.value_spent > 0 ? "-" + formatZatoshi(entry.value_spent) : "-"}</td>
+        <td class="text-end fw-bold">${netFormatted}</td>
+        <td>${poolBadge}</td>
+        <td class="small">${memo}</td>
+      </tr>
+    `;
+  }
+
+  html += `
+        </tbody>
+      </table>
+    </div>
+    <p class="small text-muted">Total transactions: ${entries.length}</p>
+  `;
+
+  ledgerDiv.innerHTML = html;
+}
+
+function getPoolBadge(pool) {
+  switch (pool) {
+    case "orchard":
+      return '<span class="badge bg-info">Orchard</span>';
+    case "sapling":
+      return '<span class="badge bg-primary">Sapling</span>';
+    case "transparent":
+      return '<span class="badge bg-warning text-dark">Transparent</span>';
+    case "mixed":
+      return '<span class="badge bg-secondary">Mixed</span>';
+    default:
+      return '<span class="badge bg-secondary">Unknown</span>';
+  }
+}
+
+function downloadLedgerCsv() {
+  const walletId = getSelectedWalletId();
+  const csv = exportLedgerCsv(walletId);
+
+  if (!csv) {
+    console.error("Failed to generate CSV");
+    return;
+  }
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `zcash-ledger-${Date.now()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Expose to global scope for onclick handlers
+window.downloadLedgerCsv = downloadLedgerCsv;
 
 function setScanLoading(loading) {
   const btn = document.getElementById("scanTxBtn");
@@ -1757,6 +2078,7 @@ function initAddressViewerUI() {
   const deriveBtn = document.getElementById("deriveAddressesBtn");
   const copyAllBtn = document.getElementById("copyAllAddressesBtn");
   const exportCsvBtn = document.getElementById("exportAddressesCsvBtn");
+  const saveToWalletBtn = document.getElementById("saveAddressesToWalletBtn");
   const walletSelect = document.getElementById("addressWalletSelect");
   const goToWalletTab = document.getElementById("goToWalletTabFromAddress");
 
@@ -1768,6 +2090,9 @@ function initAddressViewerUI() {
   }
   if (exportCsvBtn) {
     exportCsvBtn.addEventListener("click", exportAddressesCsv);
+  }
+  if (saveToWalletBtn) {
+    saveToWalletBtn.addEventListener("click", saveAddressesToWallet);
   }
   if (goToWalletTab) {
     goToWalletTab.addEventListener("click", (e) => {
@@ -1947,6 +2272,7 @@ function displayDerivedAddresses() {
   const displayDiv = document.getElementById("addressesDisplay");
   const copyAllBtn = document.getElementById("copyAllAddressesBtn");
   const exportCsvBtn = document.getElementById("exportAddressesCsvBtn");
+  const saveToWalletBtn = document.getElementById("saveAddressesToWalletBtn");
 
   if (!displayDiv) return;
 
@@ -1959,12 +2285,24 @@ function displayDerivedAddresses() {
     `;
     copyAllBtn?.classList.add("d-none");
     exportCsvBtn?.classList.add("d-none");
+    saveToWalletBtn?.classList.add("d-none");
     return;
   }
 
   // Show export buttons
   copyAllBtn?.classList.remove("d-none");
   exportCsvBtn?.classList.remove("d-none");
+  saveToWalletBtn?.classList.remove("d-none");
+
+  // Get saved addresses from the selected wallet
+  // Note: We use loadWallets() directly instead of getWallet() because
+  // getWallet() goes through WASM which strips out transparent_addresses
+  const walletSelect = document.getElementById("addressWalletSelect");
+  const walletId = walletSelect?.value;
+  const wallets = loadWallets();
+  const wallet = walletId ? wallets.find((w) => w.id === walletId) : null;
+  const savedTransparent = new Set(wallet?.transparent_addresses || []);
+  const savedUnified = new Set(wallet?.unified_addresses || []);
 
   // Detect duplicate unified addresses (due to Sapling diversifier behavior)
   // Track first occurrence index for each address
@@ -1982,6 +2320,11 @@ function displayDerivedAddresses() {
   }
 
   const duplicateCount = duplicateIndices.size;
+
+  // Count saved addresses
+  const savedCount = derivedAddressesData.filter((addr) =>
+    savedTransparent.has(addr.transparent)
+  ).length;
 
   let html = "";
 
@@ -2001,6 +2344,7 @@ function displayDerivedAddresses() {
       <table class="table table-sm">
         <thead>
           <tr>
+            <th style="width: 30px" title="Saved to wallet"><i class="bi bi-floppy"></i></th>
             <th style="width: 50px">Index</th>
             <th>Transparent Address</th>
             <th>Unified Address</th>
@@ -2019,8 +2363,15 @@ function displayDerivedAddresses() {
       : "";
     const rowClass = isDuplicate ? "table-warning" : "";
 
+    // Check if address is saved
+    const isSaved = savedTransparent.has(addr.transparent);
+    const savedIcon = isSaved
+      ? '<i class="bi bi-check-circle-fill text-success" title="Saved to wallet"></i>'
+      : '<i class="bi bi-circle text-muted" title="Not saved"></i>';
+
     html += `
       <tr class="${rowClass}">
+        <td class="align-middle text-center">${savedIcon}</td>
         <td class="text-muted align-middle">${addr.index}</td>
         <td class="align-middle">
           <div class="d-flex align-items-center gap-2">
@@ -2050,7 +2401,11 @@ function displayDerivedAddresses() {
         </tbody>
       </table>
     </div>
-    <p class="small text-muted mb-0">Showing ${derivedAddressesData.length} addresses</p>
+    <p class="small text-muted mb-0">
+      Showing ${derivedAddressesData.length} addresses
+      ${savedCount > 0 ? `<span class="text-success ms-2"><i class="bi bi-check-circle-fill"></i> ${savedCount} saved</span>` : ""}
+      ${savedCount < derivedAddressesData.length ? `<span class="text-muted ms-2"><i class="bi bi-circle"></i> ${derivedAddressesData.length - savedCount} not saved</span>` : ""}
+    </p>
   `;
 
   displayDiv.innerHTML = html;
@@ -2106,6 +2461,94 @@ function exportAddressesCsv() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+function saveAddressesToWallet() {
+  if (derivedAddressesData.length === 0) {
+    showAddressError("No addresses to save. Derive addresses first.");
+    return;
+  }
+
+  const walletSelect = document.getElementById("addressWalletSelect");
+  const walletId = walletSelect?.value;
+
+  if (!walletId) {
+    showAddressError("Please select a wallet.");
+    return;
+  }
+
+  // Get the wallet
+  const wallets = loadWallets();
+  const walletIndex = wallets.findIndex((w) => w.id === walletId);
+
+  if (walletIndex === -1) {
+    showAddressError("Wallet not found.");
+    return;
+  }
+
+  // Extract transparent addresses from derived data
+  const transparentAddresses = derivedAddressesData
+    .map((addr) => addr.transparent)
+    .filter((addr) => addr && addr.length > 0);
+
+  if (transparentAddresses.length === 0) {
+    showAddressError("No transparent addresses to save.");
+    return;
+  }
+
+  // Count existing addresses before merge
+  const existingTransparent = new Set(
+    wallets[walletIndex].transparent_addresses || []
+  );
+  const existingUnified = new Set(wallets[walletIndex].unified_addresses || []);
+
+  // Count how many are already saved
+  const alreadySavedTransparent = transparentAddresses.filter((addr) =>
+    existingTransparent.has(addr)
+  ).length;
+  const newTransparent = transparentAddresses.length - alreadySavedTransparent;
+
+  // Merge with existing addresses (avoid duplicates)
+  const addressSet = new Set([...existingTransparent, ...transparentAddresses]);
+  wallets[walletIndex].transparent_addresses = [...addressSet];
+
+  // Also save unified addresses
+  const unifiedAddresses = derivedAddressesData
+    .map((addr) => addr.unified)
+    .filter((addr) => addr && addr.length > 0);
+
+  const alreadySavedUnified = unifiedAddresses.filter((addr) =>
+    existingUnified.has(addr)
+  ).length;
+  const newUnified = unifiedAddresses.length - alreadySavedUnified;
+
+  const unifiedSet = new Set([...existingUnified, ...unifiedAddresses]);
+  wallets[walletIndex].unified_addresses = [...unifiedSet];
+
+  // Save updated wallets
+  saveWallets(wallets);
+
+  // Refresh display to show updated saved status
+  displayDerivedAddresses();
+
+  // Show success feedback
+  const saveBtn = document.getElementById("saveAddressesToWalletBtn");
+  if (saveBtn) {
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<i class="bi bi-check me-1"></i> Saved!';
+    saveBtn.classList.remove("btn-outline-primary");
+    saveBtn.classList.add("btn-success");
+    setTimeout(() => {
+      saveBtn.innerHTML = originalText;
+      saveBtn.classList.remove("btn-success");
+      saveBtn.classList.add("btn-outline-primary");
+    }, 2000);
+  }
+
+  console.log(
+    `Transparent: ${newTransparent} newly saved, ${alreadySavedTransparent} already in wallet. ` +
+      `Unified: ${newUnified} newly saved, ${alreadySavedUnified} already in wallet.`
+  );
 }
 
 function showAddressError(message) {

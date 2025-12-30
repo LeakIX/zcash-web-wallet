@@ -13,10 +13,10 @@ pub use transaction::{
 };
 pub use types::{
     DecryptedOrchardAction, DecryptedSaplingOutput, DecryptedTransaction, DecryptionResult,
-    DerivedAddress, NetworkKind, NoteCollection, Pool, ScanResult, ScanTransactionResult,
-    ScannedNote, ScannedTransparentOutput, SpentNullifier, StorageResult, StoredNote, StoredWallet,
-    TransparentInput, TransparentOutput, TransparentSpend, ViewingKeyInfo, WalletCollection,
-    WalletResult,
+    DerivedAddress, LedgerCollection, LedgerEntry, NetworkKind, NoteCollection, Pool, ScanResult,
+    ScanTransactionResult, ScannedNote, ScannedTransparentOutput, SpentNullifier, StorageResult,
+    StoredNote, StoredWallet, TransparentInput, TransparentOutput, TransparentSpend,
+    ViewingKeyInfo, WalletCollection, WalletResult,
 };
 pub use wallet::{
     WalletInfo, derive_transparent_addresses, derive_unified_addresses, derive_wallet,

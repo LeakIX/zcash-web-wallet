@@ -230,9 +230,7 @@ pub fn scan_transaction(
             transparent_received += value;
 
             // Decode the transparent address from the script
-            let address = output
-                .recipient_address()
-                .map(|addr| addr.encode(&network));
+            let address = output.recipient_address().map(|addr| addr.encode(&network));
 
             transparent_outputs.push(ScannedTransparentOutput {
                 index: i,

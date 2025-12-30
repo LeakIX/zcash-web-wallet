@@ -26,10 +26,10 @@ use zcash_protocol::consensus::{Network, NetworkType};
 // Re-export types from core library
 pub use zcash_wallet_core::{
     DecryptedOrchardAction, DecryptedSaplingOutput, DecryptedTransaction, DecryptionResult,
-    NetworkKind, NoteCollection, Pool, ScanResult, ScanTransactionResult, ScannedNote,
-    ScannedTransparentOutput, SpentNullifier, StorageResult, StoredNote, StoredWallet,
-    TransparentInput, TransparentOutput, TransparentSpend, ViewingKeyInfo, WalletCollection,
-    WalletResult,
+    LedgerCollection, LedgerEntry, NetworkKind, NoteCollection, Pool, ScanResult,
+    ScanTransactionResult, ScannedNote, ScannedTransparentOutput, SpentNullifier, StorageResult,
+    StoredNote, StoredWallet, TransparentInput, TransparentOutput, TransparentSpend,
+    ViewingKeyInfo, WalletCollection, WalletResult,
 };
 
 /// Log to browser console
@@ -2046,6 +2046,296 @@ pub fn validate_account_index(index: u32) -> String {
 
     serde_json::to_string(&ValidationResult::ok())
         .unwrap_or_else(|_| r#"{"valid":true}"#.to_string())
+}
+
+// ============================================================================
+// Ledger Operations
+// ============================================================================
+
+/// Result type for ledger operations
+#[derive(serde::Serialize, serde::Deserialize)]
+struct LedgerOperationResult {
+    success: bool,
+    entries: Vec<LedgerEntry>,
+    entry: Option<LedgerEntry>,
+    ledger: Option<LedgerCollection>,
+    is_new: Option<bool>,
+    balance: Option<i64>,
+    csv: Option<String>,
+    error: Option<String>,
+}
+
+/// Create a ledger entry from a scan result.
+///
+/// Takes the scan result, wallet ID, and information about which notes were
+/// received and spent, and creates a LedgerEntry for the transaction.
+///
+/// # Arguments
+///
+/// * `scan_result_json` - JSON of ScanResult from scanning a transaction
+/// * `wallet_id` - The wallet ID this entry belongs to
+/// * `received_note_ids_json` - JSON array of note IDs that were received
+/// * `spent_note_ids_json` - JSON array of note IDs that were spent
+/// * `spent_values_json` - JSON array of values (u64) for spent notes
+/// * `timestamp` - ISO 8601 timestamp for created_at/updated_at
+///
+/// # Returns
+///
+/// JSON containing the created LedgerEntry or an error.
+#[wasm_bindgen]
+pub fn create_ledger_entry(scan_result_json: &str, wallet_id: &str) -> String {
+    let scan_result: ScanResult = match serde_json::from_str(scan_result_json) {
+        Ok(r) => r,
+        Err(e) => {
+            return serde_json::to_string(&LedgerOperationResult {
+                success: false,
+                entries: vec![],
+                entry: None,
+                ledger: None,
+                is_new: None,
+                balance: None,
+                csv: None,
+                error: Some(format!("Failed to parse scan result: {}", e)),
+            })
+            .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string());
+        }
+    };
+
+    // Generate note IDs from scan result
+    let received_note_ids: Vec<String> = scan_result
+        .notes
+        .iter()
+        .enumerate()
+        .map(|(i, _)| format!("{}:{}:{}", scan_result.txid, wallet_id, i))
+        .collect();
+
+    // Spent note IDs from nullifiers
+    let spent_note_ids: Vec<String> = scan_result
+        .spent_nullifiers
+        .iter()
+        .map(|n| n.nullifier.clone())
+        .collect();
+
+    // We don't know spent values from scan result, so we pass empty
+    let spent_values: Vec<u64> = vec![];
+
+    // Get current timestamp using js_sys::Date
+    let date = js_sys::Date::new_0();
+    let timestamp = date.to_iso_string().as_string().unwrap_or_default();
+
+    let entry = LedgerEntry::from_scan_result(
+        &scan_result,
+        wallet_id,
+        received_note_ids,
+        spent_note_ids,
+        &spent_values,
+        &timestamp,
+    );
+
+    serde_json::to_string(&LedgerOperationResult {
+        success: true,
+        entries: vec![],
+        entry: Some(entry),
+        ledger: None,
+        is_new: None,
+        balance: None,
+        csv: None,
+        error: None,
+    })
+    .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string())
+}
+
+/// Add or update a ledger entry in a collection.
+///
+/// If an entry with the same wallet_id and txid exists, it will be updated.
+/// Otherwise, a new entry will be added.
+///
+/// # Arguments
+///
+/// * `ledger_json` - JSON of the ledger collection (array of entries)
+/// * `entry_json` - JSON of the LedgerEntry to add
+///
+/// # Returns
+///
+/// JSON containing the updated ledger and whether the entry was new.
+#[wasm_bindgen]
+pub fn add_ledger_entry(ledger_json: &str, entry_json: &str) -> String {
+    let mut collection: LedgerCollection = match serde_json::from_str(ledger_json) {
+        Ok(c) => c,
+        Err(_) => match serde_json::from_str::<Vec<LedgerEntry>>(ledger_json) {
+            Ok(entries) => LedgerCollection { entries },
+            Err(e) => {
+                return serde_json::to_string(&LedgerOperationResult {
+                    success: false,
+                    entries: vec![],
+                    entry: None,
+                    ledger: None,
+                    is_new: None,
+                    balance: None,
+                    csv: None,
+                    error: Some(format!("Failed to parse ledger: {}", e)),
+                })
+                .unwrap_or_else(|_| {
+                    r#"{"success":false,"error":"Serialization error"}"#.to_string()
+                });
+            }
+        },
+    };
+
+    let entry: LedgerEntry = match serde_json::from_str(entry_json) {
+        Ok(e) => e,
+        Err(e) => {
+            return serde_json::to_string(&LedgerOperationResult {
+                success: false,
+                entries: collection.entries.clone(),
+                entry: None,
+                ledger: Some(collection),
+                is_new: None,
+                balance: None,
+                csv: None,
+                error: Some(format!("Failed to parse ledger entry: {}", e)),
+            })
+            .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string());
+        }
+    };
+
+    let is_new = collection.add_or_update(entry);
+
+    serde_json::to_string(&LedgerOperationResult {
+        success: true,
+        entries: collection.entries.clone(),
+        entry: None,
+        ledger: Some(collection),
+        is_new: Some(is_new),
+        balance: None,
+        csv: None,
+        error: None,
+    })
+    .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string())
+}
+
+/// Get ledger entries for a specific wallet.
+///
+/// Returns entries sorted by block_height descending (newest first).
+///
+/// # Arguments
+///
+/// * `ledger_json` - JSON of the ledger collection
+/// * `wallet_id` - The wallet ID to filter by
+///
+/// # Returns
+///
+/// JSON containing the filtered entries.
+#[wasm_bindgen]
+pub fn get_ledger_for_wallet(ledger_json: &str, wallet_id: &str) -> String {
+    let collection: LedgerCollection = match serde_json::from_str(ledger_json) {
+        Ok(c) => c,
+        Err(_) => match serde_json::from_str::<Vec<LedgerEntry>>(ledger_json) {
+            Ok(entries) => LedgerCollection { entries },
+            Err(e) => {
+                return serde_json::to_string(&LedgerOperationResult {
+                    success: false,
+                    entries: vec![],
+                    entry: None,
+                    ledger: None,
+                    is_new: None,
+                    balance: None,
+                    csv: None,
+                    error: Some(format!("Failed to parse ledger: {}", e)),
+                })
+                .unwrap_or_else(|_| {
+                    r#"{"success":false,"error":"Serialization error"}"#.to_string()
+                });
+            }
+        },
+    };
+
+    let wallet_entries: Vec<LedgerEntry> = collection
+        .entries_for_wallet(wallet_id)
+        .into_iter()
+        .cloned()
+        .collect();
+
+    serde_json::to_string(&LedgerOperationResult {
+        success: true,
+        entries: wallet_entries,
+        entry: None,
+        ledger: None,
+        is_new: None,
+        balance: None,
+        csv: None,
+        error: None,
+    })
+    .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string())
+}
+
+/// Compute balance from ledger entries.
+///
+/// Sums the net_change of all entries for the wallet.
+///
+/// # Arguments
+///
+/// * `ledger_json` - JSON of the ledger collection
+/// * `wallet_id` - The wallet ID to compute balance for
+///
+/// # Returns
+///
+/// JSON containing the balance (can be negative if outgoing exceeds incoming).
+#[wasm_bindgen]
+pub fn compute_ledger_balance(ledger_json: &str, wallet_id: &str) -> String {
+    let collection: LedgerCollection = match serde_json::from_str(ledger_json) {
+        Ok(c) => c,
+        Err(_) => match serde_json::from_str::<Vec<LedgerEntry>>(ledger_json) {
+            Ok(entries) => LedgerCollection { entries },
+            Err(e) => {
+                return format!(
+                    r#"{{"success":false,"error":"Failed to parse ledger: {}"}}"#,
+                    e
+                );
+            }
+        },
+    };
+
+    let balance = collection.compute_balance(wallet_id);
+
+    format!(r#"{{"success":true,"balance":{}}}"#, balance)
+}
+
+/// Export ledger entries as CSV for tax reporting.
+///
+/// # Arguments
+///
+/// * `ledger_json` - JSON of the ledger collection
+/// * `wallet_id` - The wallet ID to export
+///
+/// # Returns
+///
+/// JSON containing the CSV string or an error.
+#[wasm_bindgen]
+pub fn export_ledger_csv(ledger_json: &str, wallet_id: &str) -> String {
+    let collection: LedgerCollection = match serde_json::from_str(ledger_json) {
+        Ok(c) => c,
+        Err(_) => match serde_json::from_str::<Vec<LedgerEntry>>(ledger_json) {
+            Ok(entries) => LedgerCollection { entries },
+            Err(e) => {
+                return format!(
+                    r#"{{"success":false,"error":"Failed to parse ledger: {}"}}"#,
+                    e
+                );
+            }
+        },
+    };
+
+    let csv = collection.export_csv(wallet_id);
+
+    // Return as JSON with the CSV content
+    match serde_json::to_string(&serde_json::json!({
+        "success": true,
+        "csv": csv
+    })) {
+        Ok(json) => json,
+        Err(_) => r#"{"success":false,"error":"Serialization error"}"#.to_string(),
+    }
 }
 
 #[cfg(test)]

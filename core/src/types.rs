@@ -680,6 +680,274 @@ impl NoteCollection {
     }
 }
 
+// ============================================================================
+// Ledger Types
+// ============================================================================
+
+/// A ledger entry representing a single transaction in the wallet's history.
+///
+/// Each entry aggregates all notes (received and spent) from a single transaction,
+/// providing a transaction-level view for history display and tax reporting.
+/// The primary key is (wallet_id, txid).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct LedgerEntry {
+    /// Transaction ID (primary key component).
+    pub txid: String,
+    /// Foreign key to the wallet this entry belongs to (primary key component).
+    pub wallet_id: String,
+    /// Block height where this transaction was mined (None if unconfirmed).
+    pub block_height: Option<u32>,
+    /// Block timestamp as ISO 8601 string (None if unconfirmed).
+    pub timestamp: Option<String>,
+    /// Total value received in this transaction (sum of all received notes).
+    pub value_received: u64,
+    /// Total value spent in this transaction (sum of notes we spent).
+    pub value_spent: u64,
+    /// Net change to wallet balance (received - spent as signed integer).
+    /// Positive = incoming, negative = outgoing.
+    pub net_change: i64,
+    /// Transaction fee in zatoshis (if we paid it, otherwise 0).
+    pub fee_paid: u64,
+    /// IDs of notes received in this transaction.
+    pub received_note_ids: Vec<String>,
+    /// IDs of notes spent in this transaction (notes that were ours).
+    pub spent_note_ids: Vec<String>,
+    /// Aggregated memos from received notes (non-empty memos only).
+    pub memos: Vec<String>,
+    /// Primary pool involved: "orchard", "sapling", "transparent", or "mixed".
+    pub primary_pool: String,
+    /// When this entry was first created/scanned (ISO 8601).
+    pub created_at: String,
+    /// When this entry was last updated (ISO 8601).
+    pub updated_at: String,
+}
+
+impl LedgerEntry {
+    /// Generate the unique ID for a ledger entry.
+    pub fn generate_id(wallet_id: &str, txid: &str) -> String {
+        format!("{}-{}", wallet_id, txid)
+    }
+
+    /// Check if this is an incoming transaction (net positive).
+    pub fn is_incoming(&self) -> bool {
+        self.net_change > 0
+    }
+
+    /// Check if this is an outgoing transaction (net negative).
+    pub fn is_outgoing(&self) -> bool {
+        self.net_change < 0
+    }
+
+    /// Create a ledger entry from a scan result and note information.
+    ///
+    /// # Arguments
+    /// * `scan_result` - The result from scanning a transaction
+    /// * `wallet_id` - The wallet this entry belongs to
+    /// * `received_note_ids` - IDs of notes that were added to our wallet
+    /// * `spent_note_ids` - IDs of notes that were spent (from previous transactions)
+    /// * `spent_values` - Values of the notes that were spent
+    /// * `timestamp` - Current timestamp for created_at/updated_at
+    pub fn from_scan_result(
+        scan_result: &ScanResult,
+        wallet_id: &str,
+        received_note_ids: Vec<String>,
+        spent_note_ids: Vec<String>,
+        spent_values: &[u64],
+        timestamp: &str,
+    ) -> Self {
+        // Calculate value received from notes
+        let value_received: u64 = scan_result
+            .notes
+            .iter()
+            .filter(|n| n.value > 0)
+            .map(|n| n.value)
+            .sum();
+
+        // Calculate value spent
+        let value_spent: u64 = spent_values.iter().sum();
+
+        // Net change (signed)
+        let net_change = value_received as i64 - value_spent as i64;
+
+        // Collect non-empty memos
+        let memos: Vec<String> = scan_result
+            .notes
+            .iter()
+            .filter_map(|n| n.memo.clone())
+            .filter(|m| !m.is_empty())
+            .collect();
+
+        // Determine primary pool
+        let pools: std::collections::HashSet<Pool> =
+            scan_result.notes.iter().map(|n| n.pool).collect();
+        let primary_pool = if pools.len() > 1 {
+            "mixed".to_string()
+        } else if pools.contains(&Pool::Orchard) {
+            "orchard".to_string()
+        } else if pools.contains(&Pool::Sapling) {
+            "sapling".to_string()
+        } else if pools.contains(&Pool::Transparent) {
+            "transparent".to_string()
+        } else {
+            "unknown".to_string()
+        };
+
+        LedgerEntry {
+            txid: scan_result.txid.clone(),
+            wallet_id: wallet_id.to_string(),
+            block_height: None,
+            timestamp: None,
+            value_received,
+            value_spent,
+            net_change,
+            fee_paid: 0, // Fee calculation requires knowing all inputs belonged to us
+            received_note_ids,
+            spent_note_ids,
+            memos,
+            primary_pool,
+            created_at: timestamp.to_string(),
+            updated_at: timestamp.to_string(),
+        }
+    }
+}
+
+/// Collection of ledger entries for storage and manipulation.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LedgerCollection {
+    /// All ledger entries.
+    pub entries: Vec<LedgerEntry>,
+}
+
+impl LedgerCollection {
+    /// Create a new empty collection.
+    pub fn new() -> Self {
+        Self {
+            entries: Vec::new(),
+        }
+    }
+
+    /// Get an entry by wallet_id and txid.
+    pub fn get_entry(&self, wallet_id: &str, txid: &str) -> Option<&LedgerEntry> {
+        self.entries
+            .iter()
+            .find(|e| e.wallet_id == wallet_id && e.txid == txid)
+    }
+
+    /// Get a mutable entry by wallet_id and txid.
+    pub fn get_entry_mut(&mut self, wallet_id: &str, txid: &str) -> Option<&mut LedgerEntry> {
+        self.entries
+            .iter_mut()
+            .find(|e| e.wallet_id == wallet_id && e.txid == txid)
+    }
+
+    /// Add or update an entry in the collection.
+    /// Returns true if a new entry was added, false if an existing entry was updated.
+    pub fn add_or_update(&mut self, entry: LedgerEntry) -> bool {
+        if let Some(existing) = self.get_entry_mut(&entry.wallet_id, &entry.txid) {
+            // Update existing entry
+            existing.block_height = entry.block_height.or(existing.block_height);
+            existing.timestamp = entry.timestamp.or(existing.timestamp.take());
+            existing.value_received = entry.value_received;
+            existing.value_spent = entry.value_spent;
+            existing.net_change = entry.net_change;
+            existing.fee_paid = entry.fee_paid;
+            existing.received_note_ids = entry.received_note_ids;
+            existing.spent_note_ids = entry.spent_note_ids;
+            existing.memos = entry.memos;
+            existing.primary_pool = entry.primary_pool;
+            existing.updated_at = entry.updated_at;
+            false
+        } else {
+            self.entries.push(entry);
+            true
+        }
+    }
+
+    /// Get all entries for a wallet, sorted by block_height descending (newest first).
+    /// Entries without block_height come first (unconfirmed).
+    pub fn entries_for_wallet(&self, wallet_id: &str) -> Vec<&LedgerEntry> {
+        let mut entries: Vec<_> = self
+            .entries
+            .iter()
+            .filter(|e| e.wallet_id == wallet_id)
+            .collect();
+        // Sort: None (unconfirmed) first, then by height descending
+        entries.sort_by(|a, b| match (&b.block_height, &a.block_height) {
+            (None, Some(_)) => std::cmp::Ordering::Greater,
+            (Some(_), None) => std::cmp::Ordering::Less,
+            (Some(bh), Some(ah)) => bh.cmp(ah),
+            (None, None) => std::cmp::Ordering::Equal,
+        });
+        entries
+    }
+
+    /// Compute balance from ledger entries by summing net changes.
+    /// This should match the balance computed from notes.
+    pub fn compute_balance(&self, wallet_id: &str) -> i64 {
+        self.entries
+            .iter()
+            .filter(|e| e.wallet_id == wallet_id)
+            .map(|e| e.net_change)
+            .sum()
+    }
+
+    /// Get entries within a date range (for tax reporting).
+    /// Dates should be in ISO 8601 format.
+    pub fn entries_in_range(
+        &self,
+        wallet_id: &str,
+        from: Option<&str>,
+        to: Option<&str>,
+    ) -> Vec<&LedgerEntry> {
+        self.entries
+            .iter()
+            .filter(|e| {
+                if e.wallet_id != wallet_id {
+                    return false;
+                }
+                if let Some(ts) = &e.timestamp {
+                    if let Some(from_ts) = from
+                        && ts.as_str() < from_ts
+                    {
+                        return false;
+                    }
+                    if let Some(to_ts) = to
+                        && ts.as_str() > to_ts
+                    {
+                        return false;
+                    }
+                    true
+                } else {
+                    // Include entries without timestamp
+                    true
+                }
+            })
+            .collect()
+    }
+
+    /// Export ledger entries as CSV for tax reporting.
+    pub fn export_csv(&self, wallet_id: &str) -> String {
+        let mut csv =
+            String::from("Date,TxID,Received (ZEC),Sent (ZEC),Net (ZEC),Fee (ZEC),Pool,Memo\n");
+
+        for entry in self.entries_for_wallet(wallet_id) {
+            let date = entry.timestamp.as_deref().unwrap_or("");
+            let received = entry.value_received as f64 / 100_000_000.0;
+            let sent = entry.value_spent as f64 / 100_000_000.0;
+            let net = entry.net_change as f64 / 100_000_000.0;
+            let fee = entry.fee_paid as f64 / 100_000_000.0;
+            let memo = entry.memos.join("; ").replace('"', "\"\"");
+
+            csv.push_str(&format!(
+                "{},\"{}\",{:.8},{:.8},{:.8},{:.8},{},\"{}\"\n",
+                date, entry.txid, received, sent, net, fee, entry.primary_pool, memo
+            ));
+        }
+
+        csv
+    }
+}
+
 /// Collection of wallets for storage.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct WalletCollection {
@@ -1236,5 +1504,329 @@ mod tests {
         let json = serde_json::to_string(&addr).unwrap();
         let deserialized: DerivedAddress = serde_json::from_str(&json).unwrap();
         assert_eq!(addr, deserialized);
+    }
+
+    // ========================================================================
+    // LedgerEntry tests
+    // ========================================================================
+
+    #[test]
+    fn test_ledger_entry_generate_id() {
+        let id = LedgerEntry::generate_id("wallet_1", "txid123");
+        assert_eq!(id, "wallet_1-txid123");
+    }
+
+    #[test]
+    fn test_ledger_entry_is_incoming_outgoing() {
+        let mut entry = LedgerEntry {
+            txid: "tx1".to_string(),
+            wallet_id: "w1".to_string(),
+            block_height: None,
+            timestamp: None,
+            value_received: 1000,
+            value_spent: 0,
+            net_change: 1000,
+            fee_paid: 0,
+            received_note_ids: vec![],
+            spent_note_ids: vec![],
+            memos: vec![],
+            primary_pool: "orchard".to_string(),
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+            updated_at: "2024-01-01T00:00:00Z".to_string(),
+        };
+
+        assert!(entry.is_incoming());
+        assert!(!entry.is_outgoing());
+
+        entry.net_change = -500;
+        assert!(!entry.is_incoming());
+        assert!(entry.is_outgoing());
+
+        entry.net_change = 0;
+        assert!(!entry.is_incoming());
+        assert!(!entry.is_outgoing());
+    }
+
+    #[test]
+    fn test_ledger_entry_from_scan_result() {
+        let scan_result = ScanResult {
+            txid: "txid123".to_string(),
+            notes: vec![
+                ScannedNote {
+                    output_index: 0,
+                    pool: Pool::Orchard,
+                    value: 1000,
+                    commitment: "cmu1".to_string(),
+                    nullifier: Some("nf1".to_string()),
+                    memo: Some("Hello".to_string()),
+                    address: None,
+                },
+                ScannedNote {
+                    output_index: 1,
+                    pool: Pool::Orchard,
+                    value: 500,
+                    commitment: "cmu2".to_string(),
+                    nullifier: Some("nf2".to_string()),
+                    memo: None,
+                    address: None,
+                },
+            ],
+            spent_nullifiers: vec![],
+            transparent_spends: vec![],
+            transparent_received: 0,
+            transparent_outputs: vec![],
+        };
+
+        let entry = LedgerEntry::from_scan_result(
+            &scan_result,
+            "wallet_1",
+            vec!["note1".to_string(), "note2".to_string()],
+            vec!["spent_note".to_string()],
+            &[200],
+            "2024-01-01T12:00:00Z",
+        );
+
+        assert_eq!(entry.txid, "txid123");
+        assert_eq!(entry.wallet_id, "wallet_1");
+        assert_eq!(entry.value_received, 1500);
+        assert_eq!(entry.value_spent, 200);
+        assert_eq!(entry.net_change, 1300);
+        assert_eq!(entry.memos, vec!["Hello".to_string()]);
+        assert_eq!(entry.primary_pool, "orchard");
+        assert_eq!(entry.received_note_ids.len(), 2);
+        assert_eq!(entry.spent_note_ids.len(), 1);
+    }
+
+    #[test]
+    fn test_ledger_entry_serialization_roundtrip() {
+        let entry = LedgerEntry {
+            txid: "tx1".to_string(),
+            wallet_id: "w1".to_string(),
+            block_height: Some(1000),
+            timestamp: Some("2024-01-01T12:00:00Z".to_string()),
+            value_received: 5000,
+            value_spent: 1000,
+            net_change: 4000,
+            fee_paid: 100,
+            received_note_ids: vec!["note1".to_string()],
+            spent_note_ids: vec!["note2".to_string()],
+            memos: vec!["Test memo".to_string()],
+            primary_pool: "sapling".to_string(),
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+            updated_at: "2024-01-01T12:00:00Z".to_string(),
+        };
+
+        let json = serde_json::to_string(&entry).unwrap();
+        let deserialized: LedgerEntry = serde_json::from_str(&json).unwrap();
+        assert_eq!(entry, deserialized);
+    }
+
+    // ========================================================================
+    // LedgerCollection tests
+    // ========================================================================
+
+    #[test]
+    fn test_ledger_collection_add_or_update() {
+        let mut collection = LedgerCollection::new();
+
+        let entry1 = LedgerEntry {
+            txid: "tx1".to_string(),
+            wallet_id: "w1".to_string(),
+            block_height: None,
+            timestamp: None,
+            value_received: 1000,
+            value_spent: 0,
+            net_change: 1000,
+            fee_paid: 0,
+            received_note_ids: vec![],
+            spent_note_ids: vec![],
+            memos: vec![],
+            primary_pool: "orchard".to_string(),
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+            updated_at: "2024-01-01T00:00:00Z".to_string(),
+        };
+
+        // Add new entry
+        assert!(collection.add_or_update(entry1.clone()));
+        assert_eq!(collection.entries.len(), 1);
+
+        // Update existing entry
+        let mut entry1_updated = entry1.clone();
+        entry1_updated.value_received = 2000;
+        entry1_updated.net_change = 2000;
+        entry1_updated.block_height = Some(500);
+        assert!(!collection.add_or_update(entry1_updated));
+        assert_eq!(collection.entries.len(), 1);
+        assert_eq!(collection.entries[0].value_received, 2000);
+        assert_eq!(collection.entries[0].block_height, Some(500));
+    }
+
+    #[test]
+    fn test_ledger_collection_get_entry() {
+        let mut collection = LedgerCollection::new();
+
+        let entry = LedgerEntry {
+            txid: "tx1".to_string(),
+            wallet_id: "w1".to_string(),
+            block_height: None,
+            timestamp: None,
+            value_received: 1000,
+            value_spent: 0,
+            net_change: 1000,
+            fee_paid: 0,
+            received_note_ids: vec![],
+            spent_note_ids: vec![],
+            memos: vec![],
+            primary_pool: "orchard".to_string(),
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+            updated_at: "2024-01-01T00:00:00Z".to_string(),
+        };
+
+        collection.add_or_update(entry);
+
+        assert!(collection.get_entry("w1", "tx1").is_some());
+        assert!(collection.get_entry("w1", "tx2").is_none());
+        assert!(collection.get_entry("w2", "tx1").is_none());
+    }
+
+    #[test]
+    fn test_ledger_collection_entries_for_wallet() {
+        let mut collection = LedgerCollection::new();
+
+        // Add entries for wallet w1
+        collection.add_or_update(LedgerEntry {
+            txid: "tx1".to_string(),
+            wallet_id: "w1".to_string(),
+            block_height: Some(100),
+            timestamp: None,
+            value_received: 1000,
+            value_spent: 0,
+            net_change: 1000,
+            fee_paid: 0,
+            received_note_ids: vec![],
+            spent_note_ids: vec![],
+            memos: vec![],
+            primary_pool: "orchard".to_string(),
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+            updated_at: "2024-01-01T00:00:00Z".to_string(),
+        });
+
+        collection.add_or_update(LedgerEntry {
+            txid: "tx2".to_string(),
+            wallet_id: "w1".to_string(),
+            block_height: Some(200),
+            timestamp: None,
+            value_received: 2000,
+            value_spent: 0,
+            net_change: 2000,
+            fee_paid: 0,
+            received_note_ids: vec![],
+            spent_note_ids: vec![],
+            memos: vec![],
+            primary_pool: "sapling".to_string(),
+            created_at: "2024-01-02T00:00:00Z".to_string(),
+            updated_at: "2024-01-02T00:00:00Z".to_string(),
+        });
+
+        // Add entry for wallet w2
+        collection.add_or_update(LedgerEntry {
+            txid: "tx3".to_string(),
+            wallet_id: "w2".to_string(),
+            block_height: Some(150),
+            timestamp: None,
+            value_received: 500,
+            value_spent: 0,
+            net_change: 500,
+            fee_paid: 0,
+            received_note_ids: vec![],
+            spent_note_ids: vec![],
+            memos: vec![],
+            primary_pool: "transparent".to_string(),
+            created_at: "2024-01-01T12:00:00Z".to_string(),
+            updated_at: "2024-01-01T12:00:00Z".to_string(),
+        });
+
+        let w1_entries = collection.entries_for_wallet("w1");
+        assert_eq!(w1_entries.len(), 2);
+        // Should be sorted by block_height descending (200, then 100)
+        assert_eq!(w1_entries[0].block_height, Some(200));
+        assert_eq!(w1_entries[1].block_height, Some(100));
+
+        let w2_entries = collection.entries_for_wallet("w2");
+        assert_eq!(w2_entries.len(), 1);
+    }
+
+    #[test]
+    fn test_ledger_collection_compute_balance() {
+        let mut collection = LedgerCollection::new();
+
+        // Incoming transaction
+        collection.add_or_update(LedgerEntry {
+            txid: "tx1".to_string(),
+            wallet_id: "w1".to_string(),
+            block_height: None,
+            timestamp: None,
+            value_received: 1000,
+            value_spent: 0,
+            net_change: 1000,
+            fee_paid: 0,
+            received_note_ids: vec![],
+            spent_note_ids: vec![],
+            memos: vec![],
+            primary_pool: "orchard".to_string(),
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+            updated_at: "2024-01-01T00:00:00Z".to_string(),
+        });
+
+        // Outgoing transaction
+        collection.add_or_update(LedgerEntry {
+            txid: "tx2".to_string(),
+            wallet_id: "w1".to_string(),
+            block_height: None,
+            timestamp: None,
+            value_received: 0,
+            value_spent: 300,
+            net_change: -300,
+            fee_paid: 10,
+            received_note_ids: vec![],
+            spent_note_ids: vec![],
+            memos: vec![],
+            primary_pool: "orchard".to_string(),
+            created_at: "2024-01-02T00:00:00Z".to_string(),
+            updated_at: "2024-01-02T00:00:00Z".to_string(),
+        });
+
+        assert_eq!(collection.compute_balance("w1"), 700);
+        assert_eq!(collection.compute_balance("w2"), 0);
+    }
+
+    #[test]
+    fn test_ledger_collection_export_csv() {
+        let mut collection = LedgerCollection::new();
+
+        collection.add_or_update(LedgerEntry {
+            txid: "tx1".to_string(),
+            wallet_id: "w1".to_string(),
+            block_height: Some(100),
+            timestamp: Some("2024-01-01T12:00:00Z".to_string()),
+            value_received: 100_000_000, // 1 ZEC
+            value_spent: 0,
+            net_change: 100_000_000,
+            fee_paid: 0,
+            received_note_ids: vec![],
+            spent_note_ids: vec![],
+            memos: vec!["Test memo".to_string()],
+            primary_pool: "orchard".to_string(),
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+            updated_at: "2024-01-01T00:00:00Z".to_string(),
+        });
+
+        let csv = collection.export_csv("w1");
+        assert!(csv.contains("Date,TxID,Received (ZEC),Sent (ZEC),Net (ZEC),Fee (ZEC),Pool,Memo"));
+        assert!(csv.contains("2024-01-01T12:00:00Z"));
+        assert!(csv.contains("tx1"));
+        assert!(csv.contains("1.00000000")); // 1 ZEC received
+        assert!(csv.contains("orchard"));
+        assert!(csv.contains("Test memo"));
     }
 }

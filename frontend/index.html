@@ -403,7 +403,7 @@
             <div class="col-lg-6">
               <div id="balanceDisplay" class="mb-4"></div>
 
-              <div class="card shadow-sm">
+              <div class="card shadow-sm mb-4">
                 <div
                   class="card-header d-flex justify-content-between align-items-center"
                 >
@@ -413,13 +413,24 @@
                   <button
                     class="btn btn-sm btn-outline-danger"
                     id="clearNotesBtn"
-                    title="Clear all tracked notes"
+                    title="Clear all tracked notes and transaction history"
                   >
                     <i class="bi bi-trash"></i> Clear
                   </button>
                 </div>
                 <div class="card-body">
                   <div id="notesDisplay"></div>
+                </div>
+              </div>
+
+              <div class="card shadow-sm">
+                <div class="card-header">
+                  <h6 class="mb-0 fw-semibold">
+                    <i class="bi bi-journal-text me-1"></i> Transaction History
+                  </h6>
+                </div>
+                <div class="card-body">
+                  <div id="ledgerDisplay"></div>
                 </div>
               </div>
             </div>
@@ -856,6 +867,13 @@
                       title="Export as CSV"
                     >
                       <i class="bi bi-download me-1"></i> Export CSV
+                    </button>
+                    <button
+                      class="btn btn-outline-primary d-none"
+                      id="saveAddressesToWalletBtn"
+                      title="Save transparent addresses to wallet for scanning"
+                    >
+                      <i class="bi bi-floppy me-1"></i> Save to Wallet
                     </button>
                   </div>
                 </div>

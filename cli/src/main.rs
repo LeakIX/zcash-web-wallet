@@ -121,6 +121,15 @@ enum Commands {
         #[arg(long, default_value = "0")]
         expiry_height: u32,
     },
+    /// Show transaction history (ledger)
+    Ledger {
+        /// Database file path
+        #[arg(long, default_value = "notes.db")]
+        db: String,
+        /// Export as CSV to file
+        #[arg(long)]
+        export: Option<String>,
+    },
 }
 
 fn main() {
@@ -166,6 +175,7 @@ fn run() -> Result<()> {
             fee,
             expiry_height,
         } => send_transparent(&wallet, &db, &to, amount, fee, expiry_height),
+        Commands::Ledger { db, export } => show_ledger(&db, export.as_deref()),
     }
 }
 
@@ -468,6 +478,47 @@ fn scan_transaction(
         .collect();
     let notes_spent = db.mark_spent_by_nullifiers(&nullifier_strings, &result.txid)?;
 
+    // Create ledger entry
+    let value_received: i64 = result.notes.iter().map(|n| n.value as i64).sum();
+    let value_spent: i64 = 0; // We don't know spent values from scan result
+    let net_change = value_received - value_spent;
+    let primary_pool = if result.notes.is_empty() {
+        "unknown"
+    } else {
+        // Use the pool of the first note (or "mixed" if multiple pools)
+        let pools: std::collections::HashSet<_> =
+            result.notes.iter().map(|n| n.pool.as_str()).collect();
+        if pools.len() == 1 {
+            result.notes[0].pool.as_str()
+        } else {
+            "mixed"
+        }
+    };
+    let memos: String = result
+        .notes
+        .iter()
+        .filter_map(|n| n.memo.as_ref())
+        .filter(|m| !m.is_empty())
+        .cloned()
+        .collect::<Vec<_>>()
+        .join("; ");
+    let memos_opt = if memos.is_empty() {
+        None
+    } else {
+        Some(memos.as_str())
+    };
+
+    db.upsert_ledger_entry(
+        &result.txid,
+        height.map(|h| h as i64),
+        value_received,
+        value_spent,
+        net_change,
+        0, // fee_paid unknown
+        primary_pool,
+        memos_opt,
+    )?;
+
     // Print results
     println!();
     println!("============================================================");
@@ -749,6 +800,94 @@ fn send_transparent(
     println!("  1. Use a Zcash node RPC: zcash-cli sendrawtransaction <hex>");
     println!("  2. Or use a block explorer's broadcast feature");
     println!("------------------------------------------------------------");
+    println!();
+
+    Ok(())
+}
+
+fn show_ledger(db_path: &str, export_path: Option<&str>) -> Result<()> {
+    let db = db::Database::open(db_path)?;
+
+    // Export to CSV if requested
+    if let Some(path) = export_path {
+        let csv = db.export_ledger_csv()?;
+        std::fs::write(path, &csv).map_err(|e| CliError::FileWrite {
+            path: path.to_string(),
+            source: e,
+        })?;
+        println!("Ledger exported to: {}", path);
+        return Ok(());
+    }
+
+    let entries = db.get_ledger_entries()?;
+
+    println!();
+    println!("============================================================");
+    println!("           TRANSACTION HISTORY (LEDGER)");
+    println!("============================================================");
+    println!();
+
+    if entries.is_empty() {
+        println!("No transactions in ledger.");
+        println!();
+        println!("Scan transactions to build your transaction history.");
+        println!();
+        return Ok(());
+    }
+
+    for entry in &entries {
+        let direction = if entry.net_change >= 0 {
+            "RECEIVED"
+        } else {
+            "SENT"
+        };
+        println!("------------------------------------------------------------");
+        println!("Transaction [{}]", direction);
+        println!("------------------------------------------------------------");
+        println!("  TxID: {}", entry.txid);
+        if let Some(height) = entry.height {
+            println!("  Height: {}", height);
+        }
+        println!("  Pool: {}", entry.primary_pool);
+        println!(
+            "  Received: {} ZEC",
+            format_zatoshi(entry.value_received as u64)
+        );
+        println!("  Spent: {} ZEC", format_zatoshi(entry.value_spent as u64));
+        let sign = if entry.net_change >= 0 { "+" } else { "" };
+        println!(
+            "  Net: {}{} ZEC",
+            sign,
+            format_zatoshi(entry.net_change.unsigned_abs())
+        );
+        if let Some(ref memos) = entry.memos
+            && !memos.is_empty()
+        {
+            println!(
+                "  Memo: {}",
+                if memos.len() > 50 {
+                    format!("{}...", &memos[..50])
+                } else {
+                    memos.clone()
+                }
+            );
+        }
+        println!("  Date: {}", entry.created_at);
+        println!();
+    }
+
+    let ledger_balance = db.get_ledger_balance()?;
+    let sign = if ledger_balance >= 0 { "" } else { "-" };
+    println!("============================================================");
+    println!(
+        "Ledger Balance: {}{} ZEC",
+        sign,
+        format_zatoshi(ledger_balance.unsigned_abs())
+    );
+    println!("Total Transactions: {}", entries.len());
+    println!("============================================================");
+    println!();
+    println!("Tip: Use --export <file.csv> to export for tax reporting.");
     println!();
 
     Ok(())
