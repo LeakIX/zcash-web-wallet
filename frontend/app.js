@@ -3372,7 +3372,7 @@ function updateSimpleTransactionList(walletId) {
 
   if (!walletId) {
     listEl.innerHTML = `
-      <div class="text-center text-muted py-4">
+      <div class="text-center text-body-secondary py-4">
         <i class="bi bi-clock-history fs-1"></i>
         <p class="mt-2 mb-0">No transactions yet</p>
       </div>
@@ -3385,7 +3385,7 @@ function updateSimpleTransactionList(walletId) {
 
   if (walletEntries.length === 0) {
     listEl.innerHTML = `
-      <div class="text-center text-muted py-4">
+      <div class="text-center text-body-secondary py-4">
         <i class="bi bi-clock-history fs-1"></i>
         <p class="mt-2 mb-0">No transactions yet</p>
       </div>
@@ -3415,7 +3415,7 @@ function updateSimpleTransactionList(walletId) {
             <i class="bi ${icon} ${color} fs-4 me-3"></i>
             <div>
               <div class="fw-semibold">${isIncoming ? "Received" : "Sent"}</div>
-              <small class="text-muted">${dateStr}</small>
+              <small class="text-body-secondary">${dateStr}</small>
             </div>
           </div>
           <div class="text-end">
