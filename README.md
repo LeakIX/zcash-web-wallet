@@ -50,7 +50,7 @@ This application includes a client-side integrity verification system that prote
 
 To maximize security, you should:
 
-1. View the [bootstrap code](frontend/integrity-check.js) (< 400 lines) and verify it's not malicious
+1. View the [bootstrap code](frontend/integrity-check.js) (under 500 lines) and verify it's not malicious
 2. Compare critical files with the [repository](https://github.com/LeakIX/zcash-web-wallet/tree/main/frontend)
 3. Check the [CHECKSUMS.json](CHECKSUMS.json) file matches what's served from `raw.githubusercontent.com`
 4. Clone and build the application yourself for complete control

@@ -1,11 +1,12 @@
 // Zcash Web Wallet - Integrity Verification Bootstrap
 // This minimal script verifies that served files match the repository code
-// Keep this file small (<200 lines) so users can easily audit it
+// Keep this file small (<500 lines) so users can easily audit it
 
 const REPO_OWNER = "LeakIX";
 const REPO_NAME = "zcash-web-wallet";
 const REPO_BRANCH = "main";
 const CHECKSUMS_URL = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${REPO_BRANCH}/CHECKSUMS.json`;
+const VERIFICATION_DELAY_MS = 200; // Visual delay between file checks for transparency
 
 // Files to verify (relative to frontend/)
 const FILES_TO_VERIFY = [
@@ -88,6 +89,14 @@ class IntegrityVerifier {
 
       document.body.insertAdjacentHTML("beforeend", modalHtml);
       const modalElement = document.getElementById("integrityModal");
+
+      // Ensure Bootstrap is available
+      if (typeof bootstrap === "undefined" || !bootstrap.Modal) {
+        throw new Error(
+          "Bootstrap is not loaded. Cannot display verification modal."
+        );
+      }
+
       const modal = new bootstrap.Modal(modalElement);
 
       modalElement.addEventListener("hidden.bs.modal", () => {
@@ -143,7 +152,7 @@ class IntegrityVerifier {
 
         if (actualHash !== expectedHash) {
           throw new Error(
-            `Hash mismatch for ${file}. Expected: ${expectedHash.substring(0, 16)}..., Got: ${actualHash.substring(0, 16)}...`
+            `Hash mismatch for ${file}. Expected: ${expectedHash.substring(0, 32)}..., Got: ${actualHash.substring(0, 32)}...`
           );
         }
 
@@ -159,7 +168,9 @@ class IntegrityVerifier {
       progressBar.textContent = `${progress}%`;
 
       // Visual delay for transparency
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) =>
+        setTimeout(resolve, VERIFICATION_DELAY_MS)
+      );
     }
 
     return verified === total;

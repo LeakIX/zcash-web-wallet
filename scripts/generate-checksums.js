@@ -66,7 +66,7 @@ function generateChecksums() {
 
     const hash = sha256File(filePath);
     checksums.files[file] = hash;
-    console.log(`  ${file}: ${hash.substring(0, 16)}...`);
+    console.log(`  ${file}: ${hash.substring(0, 32)}...`);
   }
 
   // Write to root directory
