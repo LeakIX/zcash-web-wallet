@@ -68,6 +68,11 @@ build-sass: ## Compile Sass to CSS
 	@echo "Compiling Sass..."
 	npx sass frontend/sass/style.sass frontend/css/style.css --style=compressed
 
+.PHONY: generate-checksums
+generate-checksums: ## Generate checksums for frontend files
+	@echo "Generating checksums..."
+	node scripts/generate-checksums.js
+
 # =============================================================================
 # Development
 # =============================================================================

@@ -56,6 +56,9 @@ jobs:
       - name: Build Sass
         run: make build-sass
 
+      - name: Generate checksums
+        run: node scripts/generate-checksums.js
+
       - name: Inject commit hash
         run: |
           COMMIT_HASH="${{ github.sha }}"

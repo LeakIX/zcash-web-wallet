@@ -1,0 +1,24 @@
+{
+  "version": "6ae20267efa1eec11ba8c594dab4ce1628da86ec",
+  "timestamp": "2025-12-31T20:48:22.458Z",
+  "files": {
+    "js/app.js": "9504744a580c123a5f068ef546b3e3c6b8cd7ab41b16716187a4867eceac5524",
+    "js/wasm.js": "d59292cdb2e7884ec9d8e05d1accc9f5ec81871119128580039fb6d014f7b8fd",
+    "js/decrypt-viewer.js": "d5c00aadd02ef1d902fc67f8a9e5fc181a914e82e1f3f21aaf9a7dc893204b8d",
+    "js/scanner.js": "7ca5d3497936779b6efaf7a1750a7fffa15c70a814f162ee3cb7b4c7deb00faf",
+    "js/wallet.js": "515ae6fa613d277fb9f310d9a5245004728802a9efa4c6f780b9b84c8dec5120",
+    "js/addresses.js": "177865ed6df69c1bf687b9e1e633b5e18a6c2e6fcff41e06bb42a25b9b70aecf",
+    "js/send.js": "bab364c9608c48f6ec29621b444ad89e9d127bc2dd9eb7fa42d4d1d2cb496d2a",
+    "js/views.js": "0706ac1d0a4cc3dec92f3cb8b5537b82792d59fdfc977a6de78548d52adaadfc",
+    "js/theme.js": "8b28e4862c889ae879580cf31305045f52911c9c6c14b1e01cc0e5e54c13a6e1",
+    "js/utils.js": "4dd8a353f5d9b99291792d39ed22da4a15458d0cc34945113269c3c6b55529e4",
+    "js/rpc.js": "3570f6041338ce13af83c3a464883f4eaa2ba64cf39bc0ed5f648d154d1213fc",
+    "js/constants.js": "5fedb576c5fc75aa09c13d43d9c99ddcd2bfcc7052587c9ad4bf01785d0cfee7",
+    "js/storage/endpoints.js": "d96ee1d2bcaf255da9bce49fe179ca4b1c24920153ea20274d22dd7b82e2592e",
+    "js/storage/notes.js": "b450e584b23a9a9aaf537a605ab6bee96af6bf9e0eb144f1a886fd71307cf05e",
+    "js/storage/wallets.js": "9810c2ad381e93b190c9df05b025a56f5d946a24037ebc7e2992d175b839af6e",
+    "js/storage/ledger.js": "9c27db3ca5d269b6de53fdf5382ae36b4c12ccd9e87c7556387be6d28295f55c",
+    "css/style.css": "e96edf0153354cbfd64beeb8912f1b8204784db62153949e67f3f80d54f0a5f6",
+    "index.html": "6bd1ff378f0e4911470eb3822fc4c87614091c81cd0c52c67b3af039d9467919"
+  }
+}
