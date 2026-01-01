@@ -37,6 +37,8 @@ and this project adheres to
   and changelog ([#144](https://github.com/LeakIX/zcash-web-wallet/pull/144))
 - Commit hash must be injected with `make inject-commit` before merging to main
   ([#146](https://github.com/LeakIX/zcash-web-wallet/pull/146))
+- CI enforces `__COMMIT_HASH__` placeholder on develop, injection on main PRs
+  ([#148](https://github.com/LeakIX/zcash-web-wallet/pull/148))
 
 ## [Unreleased]
 
