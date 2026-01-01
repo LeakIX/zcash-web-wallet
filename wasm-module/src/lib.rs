@@ -2450,6 +2450,219 @@ pub fn export_ledger_csv(ledger_json: &str, wallet_id: &str) -> String {
     }
 }
 
+// ============================================================================
+// Memo Operations (Encrypted Messaging)
+// ============================================================================
+
+/// Result type for memo encoding operations.
+#[derive(serde::Serialize, serde::Deserialize)]
+struct MemoEncodeResult {
+    success: bool,
+    memo: Option<String>,
+    fragments: Option<Vec<String>>,
+    error: Option<String>,
+}
+
+/// Result type for memo decoding operations.
+#[derive(serde::Serialize, serde::Deserialize)]
+struct MemoDecodeResult {
+    success: bool,
+    message: Option<zcash_wallet_core::Message>,
+    error: Option<String>,
+}
+
+/// Result type for fragment reassembly.
+#[derive(serde::Serialize, serde::Deserialize)]
+struct ReassembleResult {
+    success: bool,
+    content: Option<String>,
+    error: Option<String>,
+}
+
+/// Encode a text message into a memo.
+///
+/// Creates a 512-byte memo containing the message. If the message is too long
+/// for a single memo (>498 bytes), use `encode_message_fragments` instead.
+///
+/// # Arguments
+///
+/// * `text` - The message text (UTF-8)
+/// * `timestamp` - Unix timestamp in seconds
+/// * `nonce` - Random nonce for deduplication (u32)
+///
+/// # Returns
+///
+/// JSON with `{success: bool, memo?: string (hex), error?: string}`
+#[wasm_bindgen]
+pub fn encode_message_memo(text: &str, timestamp: u32, nonce: u32) -> String {
+    match zcash_wallet_core::encode_message_memo(text, timestamp, nonce) {
+        Ok(memo) => {
+            let memo_hex = hex::encode(&memo);
+            serde_json::to_string(&MemoEncodeResult {
+                success: true,
+                memo: Some(memo_hex),
+                fragments: None,
+                error: None,
+            })
+            .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string())
+        }
+        Err(e) => serde_json::to_string(&MemoEncodeResult {
+            success: false,
+            memo: None,
+            fragments: None,
+            error: Some(format!("{}", e)),
+        })
+        .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string()),
+    }
+}
+
+/// Encode a long message into multiple memo fragments.
+///
+/// Splits messages longer than 498 bytes across multiple memos.
+/// All fragments share the same timestamp and nonce for reassembly.
+///
+/// # Arguments
+///
+/// * `text` - The message text (UTF-8)
+/// * `timestamp` - Unix timestamp in seconds
+/// * `nonce` - Random nonce for deduplication (u32)
+///
+/// # Returns
+///
+/// JSON with `{success: bool, fragments?: string[] (hex), error?: string}`
+#[wasm_bindgen]
+pub fn encode_message_fragments(text: &str, timestamp: u32, nonce: u32) -> String {
+    match zcash_wallet_core::encode_message_fragments(text, timestamp, nonce) {
+        Ok(fragments) => {
+            let fragments_hex: Vec<String> = fragments.iter().map(hex::encode).collect();
+            serde_json::to_string(&MemoEncodeResult {
+                success: true,
+                memo: None,
+                fragments: Some(fragments_hex),
+                error: None,
+            })
+            .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string())
+        }
+        Err(e) => serde_json::to_string(&MemoEncodeResult {
+            success: false,
+            memo: None,
+            fragments: None,
+            error: Some(format!("{}", e)),
+        })
+        .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string()),
+    }
+}
+
+/// Decode a message from a memo.
+///
+/// Parses a 512-byte memo and extracts the message content.
+///
+/// # Arguments
+///
+/// * `memo_hex` - The memo as a hexadecimal string
+///
+/// # Returns
+///
+/// JSON with `{success: bool, message?: Message, error?: string}`
+///
+/// Message structure:
+/// ```json
+/// {
+///   "version": 1,
+///   "type": "Text" | "Ack" | "Fragment",
+///   "timestamp": 1672531200,
+///   "nonce": 12345,
+///   "fragment_info": { "total_fragments": 3, "index": 0 },
+///   "content": "Hello, Zcash!"
+/// }
+/// ```
+#[wasm_bindgen]
+pub fn decode_message_memo(memo_hex: &str) -> String {
+    let memo_bytes = match hex::decode(memo_hex.trim()) {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            return serde_json::to_string(&MemoDecodeResult {
+                success: false,
+                message: None,
+                error: Some(format!("Invalid hex: {}", e)),
+            })
+            .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string());
+        }
+    };
+
+    match zcash_wallet_core::decode_message_memo(&memo_bytes) {
+        Ok(message) => serde_json::to_string(&MemoDecodeResult {
+            success: true,
+            message: Some(message),
+            error: None,
+        })
+        .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string()),
+        Err(e) => serde_json::to_string(&MemoDecodeResult {
+            success: false,
+            message: None,
+            error: Some(format!("{}", e)),
+        })
+        .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string()),
+    }
+}
+
+/// Reassemble fragments into a complete message.
+///
+/// Takes multiple fragment messages with the same timestamp and nonce,
+/// sorts them by index, and combines their content.
+///
+/// # Arguments
+///
+/// * `fragments_json` - JSON array of Message objects (fragments)
+///
+/// # Returns
+///
+/// JSON with `{success: bool, content?: string, error?: string}`
+#[wasm_bindgen]
+pub fn reassemble_message_fragments(fragments_json: &str) -> String {
+    let fragments: Vec<zcash_wallet_core::Message> = match serde_json::from_str(fragments_json) {
+        Ok(f) => f,
+        Err(e) => {
+            return serde_json::to_string(&ReassembleResult {
+                success: false,
+                content: None,
+                error: Some(format!("Failed to parse fragments: {}", e)),
+            })
+            .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string());
+        }
+    };
+
+    match zcash_wallet_core::reassemble_fragments(&fragments) {
+        Ok(content) => serde_json::to_string(&ReassembleResult {
+            success: true,
+            content: Some(content),
+            error: None,
+        })
+        .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string()),
+        Err(e) => serde_json::to_string(&ReassembleResult {
+            success: false,
+            content: None,
+            error: Some(format!("{}", e)),
+        })
+        .unwrap_or_else(|_| r#"{"success":false,"error":"Serialization error"}"#.to_string()),
+    }
+}
+
+/// Generate a random nonce for message deduplication.
+///
+/// # Returns
+///
+/// A random u32 value suitable for use as a message nonce.
+#[wasm_bindgen]
+pub fn generate_message_nonce() -> u32 {
+    let mut nonce_bytes = [0u8; 4];
+    getrandom::getrandom(&mut nonce_bytes).unwrap_or_else(|_| {
+        // Fallback to rand if getrandom fails
+        rand::thread_rng().fill_bytes(&mut nonce_bytes);
+    });
+    u32::from_be_bytes(nonce_bytes)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2459,5 +2672,63 @@ mod tests {
         let result = parse_viewing_key("invalid_key");
         let info: ViewingKeyInfo = serde_json::from_str(&result).unwrap();
         assert!(!info.valid);
+    }
+
+    #[test]
+    fn test_encode_decode_message() {
+        let text = "Hello, Zcash!";
+        let timestamp = 1672531200;
+        let nonce = 12345;
+
+        let encode_result = encode_message_memo(text, timestamp, nonce);
+        let encode_json: MemoEncodeResult = serde_json::from_str(&encode_result).unwrap();
+
+        assert!(encode_json.success);
+        assert!(encode_json.memo.is_some());
+
+        let memo_hex = encode_json.memo.unwrap();
+        let decode_result = decode_message_memo(&memo_hex);
+        let decode_json: MemoDecodeResult = serde_json::from_str(&decode_result).unwrap();
+
+        assert!(decode_json.success);
+        assert!(decode_json.message.is_some());
+
+        let message = decode_json.message.unwrap();
+        assert_eq!(message.content, text);
+        assert_eq!(message.timestamp, timestamp);
+        assert_eq!(message.nonce, nonce);
+    }
+
+    #[test]
+    fn test_encode_fragments() {
+        let text = "a".repeat(1000); // Long message requiring fragmentation
+        let timestamp = 1672531200;
+        let nonce = 12345;
+
+        let encode_result = encode_message_fragments(&text, timestamp, nonce);
+        let encode_json: MemoEncodeResult = serde_json::from_str(&encode_result).unwrap();
+
+        assert!(encode_json.success);
+        assert!(encode_json.fragments.is_some());
+
+        let fragments_hex = encode_json.fragments.unwrap();
+        assert!(fragments_hex.len() > 1); // Should have multiple fragments
+
+        // Decode all fragments
+        let mut messages = Vec::new();
+        for fragment_hex in fragments_hex {
+            let decode_result = decode_message_memo(&fragment_hex);
+            let decode_json: MemoDecodeResult = serde_json::from_str(&decode_result).unwrap();
+            assert!(decode_json.success);
+            messages.push(decode_json.message.unwrap());
+        }
+
+        // Reassemble
+        let messages_json = serde_json::to_string(&messages).unwrap();
+        let reassemble_result = reassemble_message_fragments(&messages_json);
+        let reassemble_json: ReassembleResult = serde_json::from_str(&reassemble_result).unwrap();
+
+        assert!(reassemble_json.success);
+        assert_eq!(reassemble_json.content.unwrap(), text);
     }
 }

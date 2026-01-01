@@ -1,8 +1,14 @@
+pub mod memo;
 pub mod scanner;
 pub mod transaction;
 pub mod types;
 pub mod wallet;
 
+pub use memo::{
+    FragmentInfo, HEADER_SIZE, MAX_PAYLOAD_SIZE, MEMO_SIZE, MEMO_VERSION, MemoError, MemoType,
+    Message, decode_message_memo, encode_message_fragments, encode_message_memo,
+    reassemble_fragments,
+};
 pub use scanner::{
     ScannerError, extract_nullifiers, parse_transaction, parse_viewing_key_capabilities,
     scan_transaction, scan_transaction_hex,
