@@ -36,23 +36,26 @@ fi
 
 echo "Updating from $OLD_VERSION to $NEW_VERSION"
 
-# Detect sed in-place flag (GNU vs BSD)
-if sed --version >/dev/null 2>&1; then
-    SED_INPLACE="sed -i"
+# Use gsed on macOS, sed on Linux
+if command -v gsed >/dev/null 2>&1; then
+    SED="gsed"
+elif sed --version >/dev/null 2>&1; then
+    SED="sed"
 else
-    SED_INPLACE="sed -i ''"
+    echo "Error: GNU sed not found. Install with: brew install gnu-sed"
+    exit 1
 fi
 
 # Update rust-toolchain.toml
-$SED_INPLACE "s/$OLD_VERSION/$NEW_VERSION/g" rust-toolchain.toml
+$SED -i "s/$OLD_VERSION/$NEW_VERSION/g" rust-toolchain.toml
 echo "Updated rust-toolchain.toml"
 
 # Update Makefile
-$SED_INPLACE "s/$OLD_VERSION/$NEW_VERSION/g" Makefile
+$SED -i "s/$OLD_VERSION/$NEW_VERSION/g" Makefile
 echo "Updated Makefile"
 
 # Update CI workflow
-$SED_INPLACE "s/$OLD_VERSION/$NEW_VERSION/g" .github/workflows/ci.yml
+$SED -i "s/$OLD_VERSION/$NEW_VERSION/g" .github/workflows/ci.yml
 echo "Updated .github/workflows/ci.yml"
 
 echo "Done. Run 'git diff' to review changes."

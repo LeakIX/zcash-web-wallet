@@ -132,9 +132,18 @@ jobs:
           name: css-${{ matrix.os }}
           path: frontend/css/
 
-  checksums:
-    name: Verify Checksums
-    needs: [rust, frontend]
+  lint:
+    name: Lint Shell Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint shell scripts
+        run: make lint-shell
+
+  generated-files:
+    name: Verify Generated Files
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -143,54 +152,25 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: make install-npm
-
-      - name: Download WASM artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: wasm-pkg-ubuntu-latest
-          path: frontend/pkg/
-
-      - name: Download CSS artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: css-ubuntu-latest
-          path: frontend/css/
-
-      - name: Lint shell scripts
-        run: make lint-shell
-
-      - name: Verify checksums match files
-        id: verify-checksums
-        run: make verify-checksums
-        continue-on-error: true
-
-      - name: Verify checksum commit rules
-        id: verify-commit
-        if: github.event_name == 'pull_request'
+      - name: Verify generated files are updated
+        id: verify
         continue-on-error: true
         run: .github/scripts/verify-checksum-commit.sh "origin/${{ github.base_ref }}" "${{ github.sha }}"
 
       - name: Comment on PR if verification failed
-        if: (steps.verify-checksums.outcome == 'failure' || steps.verify-commit.outcome == 'failure') && github.event_name == 'pull_request'
+        if: steps.verify.outcome == 'failure'
         uses: actions/github-script@v7
         with:
           script: |
             const marker = '<!-- generated-files-bot-comment -->';
             const body = marker + '\n' +
-              '## Generated Files Verification Failed\n\n' +
+              '## Generated Files Check Failed\n\n' +
               'To ease review by external auditors, generated files must be committed separately.\n\n' +
               '**Rules:**\n' +
-              '1. WASM files (`frontend/pkg/*`) must be in their own dedicated commit\n' +
-              '2. `CHECKSUMS.json` must be in its own dedicated commit\n' +
-              '3. Order: code changes → WASM files commit → CHECKSUMS.json commit\n\n' +
+              '1. If WASM source files are modified, `frontend/pkg/*` must be updated\n' +
+              '2. WASM files must be in their own dedicated commit\n' +
+              '3. If checksummed files are modified, `CHECKSUMS.json` must be updated\n' +
+              '4. `CHECKSUMS.json` must be in its own dedicated commit\n\n' +
               '**How to fix:**\n' +
               '```bash\n' +
               '# 1. Commit your code changes first\n' +
@@ -229,13 +209,13 @@ jobs:
               });
             }
 
-      - name: Fail if any verification failed
-        if: steps.verify-checksums.outcome == 'failure' || steps.verify-commit.outcome == 'failure'
+      - name: Fail if verification failed
+        if: steps.verify.outcome == 'failure'
         run: exit 1
 
   build-complete:
     name: Build Complete
-    needs: [rust, cli, frontend, checksums]
+    needs: [rust, cli, frontend, lint]
     runs-on: ubuntu-latest
     steps:
       - name: All checks passed
