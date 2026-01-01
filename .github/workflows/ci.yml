@@ -229,3 +229,15 @@ jobs:
           fi
           echo "OK: Commit hash is injected"
 
+  verify-release-commits:
+    name: Verify Release Commits (main)
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify release branch structure
+        run: .github/scripts/verify-release-commits.sh "origin/develop" "${{ github.sha }}"
+
