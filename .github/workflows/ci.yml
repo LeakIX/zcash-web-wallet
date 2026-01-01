@@ -148,14 +148,11 @@ jobs:
       - name: Install npm dependencies
         run: make install-npm
 
-      - name: Build project
-        run: make build
+      - name: Install Playwright
+        run: make install-playwright
 
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Run Playwright tests
-        run: npx playwright test
+      - name: Run E2E tests
+        run: make test-e2e-frontend
 
       - uses: actions/upload-artifact@v4
         if: always()

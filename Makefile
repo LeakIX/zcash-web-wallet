@@ -48,6 +48,11 @@ install-npm: ## Install npm dependencies (Prettier, Sass)
 	@echo "Installing npm dependencies..."
 	npm install
 
+.PHONY: install-playwright
+install-playwright: ## Install Playwright browsers
+	@echo "Installing Playwright browsers..."
+	npx playwright install --with-deps chromium
+
 # =============================================================================
 # Building
 # =============================================================================
