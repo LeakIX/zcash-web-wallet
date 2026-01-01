@@ -141,77 +141,60 @@ jobs:
       - name: Lint shell scripts
         run: make lint-shell
 
-  generated-files:
-    name: Verify Generated Files
+  verify-wasm-commits:
+    name: Verify WASM Commits
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Verify generated files are updated
-        id: verify
-        continue-on-error: true
-        run: .github/scripts/verify-checksum-commit.sh "origin/${{ github.base_ref }}" "${{ github.sha }}"
+      - name: Verify WASM files are in dedicated commits
+        run: .github/scripts/verify-checksum-commit.sh wasm "origin/${{ github.base_ref }}" "${{ github.sha }}"
 
-      - name: Comment on PR if verification failed
-        if: steps.verify.outcome == 'failure'
-        uses: actions/github-script@v7
+  verify-css-commits:
+    name: Verify CSS Commits
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
         with:
-          script: |
-            const marker = '<!-- generated-files-bot-comment -->';
-            const body = marker + '\n' +
-              '## Generated Files Check Failed\n\n' +
-              'To ease review by external auditors, generated files must be committed separately.\n\n' +
-              '**Rules:**\n' +
-              '1. If WASM source files are modified, `frontend/pkg/*` must be updated\n' +
-              '2. WASM files must be in their own dedicated commit\n' +
-              '3. If checksummed files are modified, `CHECKSUMS.json` must be updated\n' +
-              '4. `CHECKSUMS.json` must be in its own dedicated commit\n\n' +
-              '**How to fix:**\n' +
-              '```bash\n' +
-              '# 1. Commit your code changes first\n' +
-              'git add <your-source-files>\n' +
-              'git commit -m "feat: your changes"\n\n' +
-              '# 2. Build and commit WASM files separately\n' +
-              'make build-wasm\n' +
-              'git add frontend/pkg/\n' +
-              'git commit -m "chore: update generated WASM files"\n\n' +
-              '# 3. Generate and commit checksums separately\n' +
-              'make generate-checksums\n' +
-              'git add CHECKSUMS.json\n' +
-              'git commit -m "chore: update CHECKSUMS.json"\n' +
-              '```\n';
+          fetch-depth: 0
 
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
+      - name: Verify CSS files are in dedicated commits
+        run: .github/scripts/verify-checksum-commit.sh css "origin/${{ github.base_ref }}" "${{ github.sha }}"
 
-            const existing = comments.find(c => c.body.includes(marker));
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body: body,
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: body,
-              });
-            }
+  verify-checksum-commits:
+    name: Verify Checksum Commits
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Fail if verification failed
-        if: steps.verify.outcome == 'failure'
-        run: exit 1
+      - name: Verify CHECKSUMS.json is in dedicated commit
+        run: .github/scripts/verify-checksum-commit.sh checksums "origin/${{ github.base_ref }}" "${{ github.sha }}"
+
+  verify-changelog:
+    name: Verify Changelog
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify CHANGELOG.md is updated
+        run: |
+          if ! git diff --name-only "origin/${{ github.base_ref }}..${{ github.sha }}" | grep -q "^CHANGELOG.md$"; then
+            echo "ERROR: CHANGELOG.md was not updated in this PR"
+            echo ""
+            echo "Please add an entry to CHANGELOG.md describing your changes."
+            exit 1
+          fi
+          echo "OK: CHANGELOG.md is updated"
 
   pages-build:
     name: Pages Build (${{ matrix.os }})
