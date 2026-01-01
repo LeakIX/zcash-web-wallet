@@ -7,7 +7,7 @@
 WASM_PACK_VERSION := 0.13.1
 # When updating RUST_NIGHTLY, also update rust-toolchain.toml and
 # .github/workflows/ci.yml
-RUST_NIGHTLY := nightly-2025-12-30
+RUST_NIGHTLY := nightly-2025-12-31
 CARGO := rustup run $(RUST_NIGHTLY) cargo
 
 # Use GNU sed on macOS (install with: brew install gnu-sed)

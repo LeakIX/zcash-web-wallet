@@ -9,7 +9,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   # When updating RUST_NIGHTLY, also update rust-toolchain.toml and Makefile
-  RUST_NIGHTLY: nightly-2025-12-30
+  RUST_NIGHTLY: nightly-2025-12-31
 
 jobs:
   rust:
