@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## 0.2.0 - 20260101
+
 ### Added
 
 - Show both unified and transparent addresses in Simple view Receive dialog
