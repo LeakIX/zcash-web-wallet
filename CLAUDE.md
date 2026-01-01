@@ -26,16 +26,17 @@ make serve            # Build and serve frontend on port 3000
 ### Component-specific commands
 
 ```bash
-# Rust WASM module
-cd wasm-module && cargo +nightly test              # Run single test
-cd wasm-module && cargo +nightly clippy            # Lint
-cd wasm-module && cargo +nightly fmt               # Format
+# Rust
+make test-wasm-unit          # Run WASM module tests
+make test-cli                # Run CLI tests
+make lint-wasm               # Lint WASM module with clippy
+make lint-cli                # Lint CLI with clippy
+make format-rust             # Format Rust code
 
 # Frontend
-make format-check-js                               # Check JS/HTML formatting
-make format-check-sass                             # Check Sass formatting
-make build-sass                                    # Compile Sass to CSS
-make watch-sass                                    # Watch and recompile Sass
+make format-check-js         # Check JS/HTML formatting
+make build-sass              # Compile Sass to CSS
+make watch-sass              # Watch and recompile Sass
 ```
 
 ### Development server
@@ -97,8 +98,8 @@ data is fetched directly from the RPC endpoint the user selects.
 ### Formatting
 
 - **Always run `make format` before every commit and push**
-- Rust: `cargo +nightly fmt`
-- JS/HTML: `prettier --write`
+- Rust: `make format-rust`
+- JS/HTML: `make format-js`
 - Sass: indented syntax has strict formatting rules (no automated formatter)
 
 ### Pre-Commit Checklist

@@ -5,6 +5,10 @@
 # =============================================================================
 
 WASM_PACK_VERSION := 0.13.1
+# When updating RUST_NIGHTLY, also update rust-toolchain.toml and
+# .github/workflows/ci.yml
+RUST_NIGHTLY := nightly-2025-12-30
+CARGO := rustup run $(RUST_NIGHTLY) cargo
 
 # =============================================================================
 # Default target
@@ -22,12 +26,12 @@ install: install-wasm-pack install-npm ## Install all dependencies
 	@echo "All dependencies installed"
 
 .PHONY: install-wasm-pack
-install-wasm-pack: ## Install wasm-pack and Rust nightly toolchain
+install-wasm-pack: ## Install wasm-pack and Rust toolchain
 	@echo "Installing wasm-pack v$(WASM_PACK_VERSION)..."
 	cargo install wasm-pack --version $(WASM_PACK_VERSION)
-	@echo "Installing Rust nightly toolchain..."
-	@rustup install nightly
-	@rustup target add wasm32-unknown-unknown --toolchain nightly
+	@echo "Installing Rust toolchain $(RUST_NIGHTLY)..."
+	@rustup install $(RUST_NIGHTLY)
+	@rustup target add wasm32-unknown-unknown --toolchain $(RUST_NIGHTLY)
 
 .PHONY: install-npm
 install-npm: ## Install npm dependencies (Prettier, Sass)
@@ -49,19 +53,21 @@ ifeq ($(shell uname),Darwin)
 	@if [ -d "$$(brew --prefix llvm 2>/dev/null)" ]; then \
 		LLVM_PREFIX=$$(brew --prefix llvm); \
 		CC="$$LLVM_PREFIX/bin/clang" AR="$$LLVM_PREFIX/bin/llvm-ar" \
-		sh -c 'cd wasm-module && wasm-pack build --target web --release --out-dir ../frontend/pkg'; \
+		sh -c 'cd wasm-module && \
+			wasm-pack build --target web --release --out-dir ../frontend/pkg'; \
 	else \
 		echo "Error: Homebrew LLVM not found. Install with: brew install llvm"; \
 		exit 1; \
 	fi
 else
-	cd wasm-module && wasm-pack build --target web --release --out-dir ../frontend/pkg
+	cd wasm-module && \
+		wasm-pack build --target web --release --out-dir ../frontend/pkg
 endif
 
 .PHONY: build-cli
 build-cli: ## Build CLI tool
 	@echo "Building CLI tool..."
-	cargo +nightly build --release -p zcash-wallet-cli
+	$(CARGO) build --release -p zcash-wallet-cli
 
 .PHONY: build-sass
 build-sass: ## Compile Sass to CSS
@@ -103,7 +109,7 @@ format: format-rust format-toml format-js ## Format all code
 .PHONY: format-rust
 format-rust: ## Format Rust code with cargo fmt
 	@echo "Formatting Rust code..."
-	cargo +nightly fmt --all
+	$(CARGO) fmt --all
 
 .PHONY: format-toml
 format-toml: ## Format TOML files with taplo
@@ -120,18 +126,19 @@ format-js: ## Format JavaScript/HTML/Markdown with Prettier
 # =============================================================================
 
 .PHONY: format-check
-format-check: format-check-rust format-check-toml format-check-js ## Check formatting without modifying files
+format-check: format-check-rust format-check-toml format-check-js
+format-check: ## Check formatting without modifying files
 	@echo "Format check complete"
 
 .PHONY: format-check-rust
 format-check-rust: ## Check Rust formatting
 	@echo "Checking Rust formatting..."
-	cargo +nightly fmt --all --check
+	$(CARGO) fmt --all --check
 
 .PHONY: format-check-cli
 format-check-cli: ## Check CLI Rust formatting
 	@echo "Checking CLI formatting..."
-	cargo +nightly fmt -p zcash-wallet-cli --check
+	$(CARGO) fmt -p zcash-wallet-cli --check
 
 .PHONY: format-check-toml
 format-check-toml: ## Check TOML formatting with taplo
@@ -158,12 +165,12 @@ lint-rust: lint-wasm lint-cli ## Lint all Rust code with clippy
 .PHONY: lint-wasm
 lint-wasm: ## Lint WASM module with clippy
 	@echo "Linting WASM module..."
-	cd wasm-module && cargo +nightly clippy -- -D warnings
+	cd wasm-module && $(CARGO) clippy -- -D warnings
 
 .PHONY: lint-cli
 lint-cli: ## Lint CLI tool with clippy
 	@echo "Linting CLI tool..."
-	cargo +nightly clippy -p zcash-wallet-cli -- -D warnings
+	$(CARGO) clippy -p zcash-wallet-cli -- -D warnings
 
 .PHONY: lint-js
 lint-js: ## Alias for format-check-js
@@ -189,17 +196,17 @@ test-rust: test-core test-wasm-unit test-cli ## Run all Rust unit tests
 .PHONY: test-core
 test-core: ## Run core library unit tests
 	@echo "Running core library tests..."
-	cargo +nightly test -p zcash-wallet-core
+	$(CARGO) test -p zcash-wallet-core
 
 .PHONY: test-wasm-unit
 test-wasm-unit: ## Run WASM module unit tests
 	@echo "Running WASM module tests..."
-	cd wasm-module && cargo +nightly test
+	cd wasm-module && $(CARGO) test
 
 .PHONY: test-cli
 test-cli: ## Run CLI unit tests
 	@echo "Running CLI tests..."
-	cargo +nightly test -p zcash-wallet-cli
+	$(CARGO) test -p zcash-wallet-cli
 
 .PHONY: test-e2e
 test-e2e: build-cli ## Run CLI end-to-end tests
@@ -213,28 +220,29 @@ test-e2e: build-cli ## Run CLI end-to-end tests
 .PHONY: install-coverage
 install-coverage: ## Install cargo-llvm-cov for code coverage
 	@echo "Installing cargo-llvm-cov..."
-	cargo install cargo-llvm-cov
+	$(CARGO) install cargo-llvm-cov
 
 .PHONY: coverage
 coverage: ## Run tests with coverage for core library
 	@echo "Running tests with coverage..."
-	cargo +nightly llvm-cov --package zcash-wallet-core
+	$(CARGO) llvm-cov --package zcash-wallet-core
 
 .PHONY: coverage-html
 coverage-html: ## Generate HTML coverage report for core library
 	@echo "Generating HTML coverage report..."
-	cargo +nightly llvm-cov --package zcash-wallet-core --html --output-dir coverage
+	$(CARGO) llvm-cov --package zcash-wallet-core --html --output-dir coverage
 	@echo "Coverage report generated at coverage/html/index.html"
 
 .PHONY: coverage-lcov
 coverage-lcov: ## Generate LCOV coverage report for CI
 	@echo "Generating LCOV coverage report..."
-	cargo +nightly llvm-cov --package zcash-wallet-core --lcov --output-path coverage.lcov
+	$(CARGO) llvm-cov --package zcash-wallet-core \
+		--lcov --output-path coverage.lcov
 
 .PHONY: coverage-all
 coverage-all: ## Run tests with coverage for all Rust packages
 	@echo "Running tests with coverage for all packages..."
-	cargo +nightly llvm-cov --workspace --exclude html-builder
+	$(CARGO) llvm-cov --workspace --exclude html-builder
 
 # =============================================================================
 # Cleaning
