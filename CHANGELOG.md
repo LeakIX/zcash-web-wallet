@@ -25,6 +25,8 @@ and this project adheres to
 
 ### Changed
 
+- Consolidate `pages-build` CI job into deploy workflow
+  ([#152](https://github.com/LeakIX/zcash-web-wallet/pull/152))
 - Update Rust nightly to `nightly-2025-12-31`
   ([#138](https://github.com/LeakIX/zcash-web-wallet/pull/138))
 - Require GNU sed on macOS for Makefile targets (`brew install gnu-sed`)
