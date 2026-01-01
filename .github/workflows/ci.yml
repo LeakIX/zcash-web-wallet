@@ -196,6 +196,24 @@ jobs:
           fi
           echo "OK: CHANGELOG.md is updated"
 
+  verify-commit-placeholder:
+    name: Verify Commit Placeholder
+    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify __COMMIT_HASH__ placeholder is present
+        run: |
+          if ! grep -q "__COMMIT_HASH__" frontend/index.html; then
+            echo "ERROR: __COMMIT_HASH__ placeholder not found in index.html"
+            echo ""
+            echo "The develop branch must keep the __COMMIT_HASH__ placeholder."
+            echo "To deploy to main, create a release branch and inject the commit there."
+            exit 1
+          fi
+          echo "OK: __COMMIT_HASH__ placeholder is present"
+
   pages-build:
     name: Pages Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
