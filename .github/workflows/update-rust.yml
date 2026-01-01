@@ -1,0 +1,83 @@
+name: Update Rust Nightly
+
+on:
+  schedule:
+    # Run every Monday at 09:00 UTC
+    - cron: "0 9 * * 1"
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  update-rust:
+    name: Update Rust Nightly Version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get latest nightly date
+        id: get-nightly
+        run: |
+          # Get the latest available nightly version
+          LATEST=$(rustup check 2>/dev/null | grep nightly | head -1 | \
+            grep -oE 'nightly-[0-9]{4}-[0-9]{2}-[0-9]{2}' || true)
+
+          if [ -z "$LATEST" ]; then
+            # Fallback: use yesterday's date as nightly
+            LATEST="nightly-$(date -d 'yesterday' '+%Y-%m-%d')"
+          fi
+
+          echo "version=$LATEST" >> "$GITHUB_OUTPUT"
+          echo "Latest nightly: $LATEST"
+
+      - name: Get current version
+        id: get-current
+        run: |
+          CURRENT=$(grep -oE 'nightly-[0-9]{4}-[0-9]{2}-[0-9]{2}' \
+            rust-toolchain.toml | head -1)
+          echo "version=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "Current nightly: $CURRENT"
+
+      - name: Update version in files
+        if: steps.get-nightly.outputs.version != steps.get-current.outputs.version
+        env:
+          NEW_VERSION: ${{ steps.get-nightly.outputs.version }}
+          OLD_VERSION: ${{ steps.get-current.outputs.version }}
+        run: |
+          echo "Updating from $OLD_VERSION to $NEW_VERSION"
+
+          # Update rust-toolchain.toml
+          sed -i "s/$OLD_VERSION/$NEW_VERSION/g" rust-toolchain.toml
+
+          # Update Makefile
+          sed -i "s/$OLD_VERSION/$NEW_VERSION/g" Makefile
+
+          # Update CI workflow
+          sed -i "s/$OLD_VERSION/$NEW_VERSION/g" .github/workflows/ci.yml
+
+          # Show changes
+          git diff
+
+      - name: Create Pull Request
+        if: steps.get-nightly.outputs.version != steps.get-current.outputs.version
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update Rust nightly to ${{ steps.get-nightly.outputs.version }}"
+          title: "chore: update Rust nightly to ${{ steps.get-nightly.outputs.version }}"
+          body: |
+            Automated update of Rust nightly version.
+
+            **Changes:**
+            - `rust-toolchain.toml`
+            - `Makefile`
+            - `.github/workflows/ci.yml`
+
+            **From:** `${{ steps.get-current.outputs.version }}`
+            **To:** `${{ steps.get-nightly.outputs.version }}`
+
+            Please review and ensure CI passes before merging.
+          branch: chore/update-rust-nightly
+          base: develop
+          delete-branch: true
