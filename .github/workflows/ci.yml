@@ -182,33 +182,27 @@ jobs:
         with:
           script: |
             const marker = '<!-- generated-files-bot-comment -->';
-            const body = marker + `
-## Generated Files Verification Failed
-
-To ease review by external auditors, generated files must be committed separately.
-
-**Rules:**
-1. WASM files (\`frontend/pkg/*\`) must be in their own dedicated commit
-2. \`CHECKSUMS.json\` must be in its own dedicated commit
-3. Order: code changes → WASM files commit → CHECKSUMS.json commit
-
-**How to fix:**
-\`\`\`bash
-# 1. Commit your code changes first
-git add <your-source-files>
-git commit -m "feat: your changes"
-
-# 2. Build and commit WASM files separately
-make build-wasm
-git add frontend/pkg/
-git commit -m "chore: update generated WASM files"
-
-# 3. Generate and commit checksums separately
-make generate-checksums
-git add CHECKSUMS.json
-git commit -m "chore: update CHECKSUMS.json"
-\`\`\`
-`;
+            const body = marker + '\n' +
+              '## Generated Files Verification Failed\n\n' +
+              'To ease review by external auditors, generated files must be committed separately.\n\n' +
+              '**Rules:**\n' +
+              '1. WASM files (`frontend/pkg/*`) must be in their own dedicated commit\n' +
+              '2. `CHECKSUMS.json` must be in its own dedicated commit\n' +
+              '3. Order: code changes → WASM files commit → CHECKSUMS.json commit\n\n' +
+              '**How to fix:**\n' +
+              '```bash\n' +
+              '# 1. Commit your code changes first\n' +
+              'git add <your-source-files>\n' +
+              'git commit -m "feat: your changes"\n\n' +
+              '# 2. Build and commit WASM files separately\n' +
+              'make build-wasm\n' +
+              'git add frontend/pkg/\n' +
+              'git commit -m "chore: update generated WASM files"\n\n' +
+              '# 3. Generate and commit checksums separately\n' +
+              'make generate-checksums\n' +
+              'git add CHECKSUMS.json\n' +
+              'git commit -m "chore: update CHECKSUMS.json"\n' +
+              '```\n';
 
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
