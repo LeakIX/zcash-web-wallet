@@ -35,6 +35,8 @@ and this project adheres to
   ([#144](https://github.com/LeakIX/zcash-web-wallet/pull/144))
 - Split generated files CI check into separate jobs for WASM, CSS, checksums,
   and changelog ([#144](https://github.com/LeakIX/zcash-web-wallet/pull/144))
+- Commit hash must be injected with `make inject-commit` before merging to main
+  ([#146](https://github.com/LeakIX/zcash-web-wallet/pull/146))
 
 ## [Unreleased]
 
