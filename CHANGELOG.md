@@ -41,6 +41,8 @@ and this project adheres to
   ([#148](https://github.com/LeakIX/zcash-web-wallet/pull/148))
 - CI should not run code coverage on main
   ([#150](https://github.com/LeakIX/zcash-web-wallet/pull/150))
+- Deploy workflow verifies checksums before publishing to GitHub Pages
+  ([#151](https://github.com/LeakIX/zcash-web-wallet/pull/151))
 
 ## [Unreleased]
 
