@@ -45,6 +45,8 @@ and this project adheres to
   ([#150](https://github.com/LeakIX/zcash-web-wallet/pull/150))
 - Deploy workflow verifies checksums before publishing to GitHub Pages
   ([#151](https://github.com/LeakIX/zcash-web-wallet/pull/151))
+- Makefile: remove inject-commit target
+  ([#157](https://github.com/LeakIX/zcash-web-wallet/pull/157))
 
 ## [0.1.0] - 2025-12-30
 
