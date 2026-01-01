@@ -25,6 +25,8 @@ and this project adheres to
 
 ### Changed
 
+- Consolidate `pages-build` CI job into deploy workflow
+  ([#152](https://github.com/LeakIX/zcash-web-wallet/pull/152))
 - Update Rust nightly to `nightly-2025-12-31`
   ([#138](https://github.com/LeakIX/zcash-web-wallet/pull/138))
 - Require GNU sed on macOS for Makefile targets (`brew install gnu-sed`)
@@ -39,6 +41,10 @@ and this project adheres to
   ([#146](https://github.com/LeakIX/zcash-web-wallet/pull/146))
 - CI enforces `__COMMIT_HASH__` placeholder on develop, injection on main PRs
   ([#148](https://github.com/LeakIX/zcash-web-wallet/pull/148))
+- CI should not run code coverage on main
+  ([#150](https://github.com/LeakIX/zcash-web-wallet/pull/150))
+- Deploy workflow verifies checksums before publishing to GitHub Pages
+  ([#151](https://github.com/LeakIX/zcash-web-wallet/pull/151))
 
 ## [Unreleased]
 
