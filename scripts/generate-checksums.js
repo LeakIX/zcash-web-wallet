@@ -26,10 +26,14 @@ const FILES_TO_CHECKSUM = [
   "js/storage/ledger.js",
   "css/style.css",
   "index.html",
+  "pkg/zcash_tx_viewer.js",
+  "pkg/zcash_tx_viewer_bg.wasm",
 ];
 
 function sha256File(filePath) {
-  const content = fs.readFileSync(filePath, "utf8");
+  // Use binary mode for .wasm files, utf8 for text files
+  const isBinary = filePath.endsWith(".wasm");
+  const content = fs.readFileSync(filePath, isBinary ? null : "utf8");
   return crypto.createHash("sha256").update(content).digest("hex");
 }
 

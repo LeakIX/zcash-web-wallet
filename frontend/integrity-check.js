@@ -31,6 +31,8 @@ const FILES_TO_VERIFY = [
   "js/storage/ledger.js",
   "css/style.css",
   "index.html",
+  "pkg/zcash_tx_viewer.js",
+  "pkg/zcash_tx_viewer_bg.wasm",
 ];
 
 class IntegrityVerifier {
@@ -39,9 +41,7 @@ class IntegrityVerifier {
     this.checksums = null;
   }
 
-  async sha256(content) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(content);
+  async sha256(data) {
     const hashBuffer = await crypto.subtle.digest("SHA-256", data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -52,7 +52,12 @@ class IntegrityVerifier {
     if (!response.ok) {
       throw new Error(`Failed to fetch ${path}: ${response.statusText}`);
     }
-    return await response.text();
+    // Use binary mode for .wasm files, text for others
+    if (path.endsWith(".wasm")) {
+      return await response.arrayBuffer();
+    }
+    const text = await response.text();
+    return new TextEncoder().encode(text);
   }
 
   async fetchChecksums() {
