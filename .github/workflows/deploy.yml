@@ -21,12 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust nightly
-        uses: dtolnay/rust-toolchain@nightly
-        with:
-          targets: wasm32-unknown-unknown
-
-      - name: Install wasm-pack
+      - name: Install Rust toolchain and wasm-pack
         run: make install-wasm-pack
 
       - name: Cache Cargo

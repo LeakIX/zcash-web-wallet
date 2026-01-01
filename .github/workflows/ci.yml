@@ -213,9 +213,76 @@ jobs:
         if: steps.verify.outcome == 'failure'
         run: exit 1
 
+  pages-build:
+    name: Pages Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: brew install llvm gnu-sed
+
+      - name: Install Rust toolchain and wasm-pack
+        run: make install-wasm-pack
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            wasm-module/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install npm dependencies
+        run: make install-npm
+
+      - name: Build WASM
+        run: make build-wasm
+
+      - name: Build Sass
+        run: make build-sass
+
+      - name: Generate checksums
+        run: make generate-checksums
+
+      - name: Inject commit hash
+        run: |
+          COMMIT_HASH="${{ github.sha }}"
+          COMMIT_SHORT="${COMMIT_HASH:0:7}"
+          if [ "$(uname)" = "Darwin" ]; then
+            gsed -i "s/__COMMIT_HASH__/${COMMIT_HASH}/g" frontend/index.html
+            gsed -i "s/__COMMIT_SHORT__/${COMMIT_SHORT}/g" frontend/index.html
+          else
+            sed -i "s/__COMMIT_HASH__/${COMMIT_HASH}/g" frontend/index.html
+            sed -i "s/__COMMIT_SHORT__/${COMMIT_SHORT}/g" frontend/index.html
+          fi
+
+      - name: Verify checksums
+        run: make verify-checksums
+
+      - name: Upload frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-${{ matrix.os }}
+          path: frontend/
+
   build-complete:
     name: Build Complete
-    needs: [rust, cli, frontend, lint]
+    needs: [rust, cli, frontend, lint, pages-build]
     runs-on: ubuntu-latest
     steps:
       - name: All checks passed
