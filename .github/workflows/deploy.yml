@@ -21,21 +21,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain and wasm-pack
-        run: make install-wasm-pack
-
-      - name: Cache Cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            wasm-module/target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -45,14 +30,11 @@ jobs:
       - name: Install npm dependencies
         run: make install-npm
 
-      - name: Build WASM
-        run: make build-wasm
-
       - name: Build Sass
         run: make build-sass
 
-      - name: Generate checksums
-        run: make generate-checksums
+      - name: Verify checksums
+        run: make verify-checksums
 
       - name: Inject commit hash
         run: |
