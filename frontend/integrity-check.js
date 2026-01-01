@@ -4,7 +4,10 @@
 
 const REPO_OWNER = "LeakIX";
 const REPO_NAME = "zcash-web-wallet";
-const REPO_BRANCH = "main";
+const REPO_BRANCH = (() => {
+  const script = document.currentScript;
+  return (script && script.dataset.branch) || "main";
+})();
 const CHECKSUMS_URL = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${REPO_BRANCH}/CHECKSUMS.json`;
 const VERIFICATION_DELAY_MS = 200; // Visual delay between file checks for transparency
 
