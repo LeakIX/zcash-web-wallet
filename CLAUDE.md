@@ -118,6 +118,33 @@ Note: `make test` runs both `make test-rust` (unit tests for core, wasm, cli) an
 - Add entries under `## [Unreleased]` section
 - Categories: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`
 
+### Checksums (Integrity Verification)
+
+To ease review by external auditors, `CHECKSUMS.json` must follow strict commit rules:
+
+1. **If you modify any checksummed file, you must update `CHECKSUMS.json`**
+   - Checksummed files: all JS in `frontend/js/`, `frontend/css/style.css`, `frontend/index.html`, WASM files in `frontend/pkg/`
+2. **`CHECKSUMS.json` must be updated in its own dedicated commit**
+   - The commit must contain ONLY `CHECKSUMS.json`, no other files
+   - This allows auditors to review code changes separately from checksum updates
+
+**Workflow for updating checksummed files:**
+
+```bash
+# 1. Make your code changes and commit them
+git add frontend/js/app.js
+git commit -m "feat: add new feature"
+
+# 2. Build and generate new checksums
+make build && make generate-checksums
+
+# 3. Commit CHECKSUMS.json separately
+git add CHECKSUMS.json
+git commit -m "chore: update CHECKSUMS.json"
+```
+
+CI will fail if these rules are not followed and will comment on the PR with instructions.
+
 ### Commit Standards
 
 - No emojis in commit messages
