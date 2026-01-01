@@ -21,9 +21,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install LLVM (macOS)
+      - name: Install macOS dependencies
         if: runner.os == 'macOS'
-        run: brew install llvm
+        run: brew install llvm gnu-sed
 
       - name: Install Rust toolchain and wasm-pack
         run: make install-wasm-pack
@@ -67,6 +67,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: brew install gnu-sed
+
       - name: Install Rust toolchain
         run: make install-wasm-pack
 
@@ -102,6 +106,10 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: brew install gnu-sed
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
