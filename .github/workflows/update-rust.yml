@@ -35,14 +35,29 @@ jobs:
         if: steps.get-nightly.outputs.version != steps.get-current.outputs.version
         run: |
           .github/scripts/update-rust-version.sh "${{ steps.get-nightly.outputs.version }}"
-          git diff
+
+      - name: Commit version update
+        if: steps.get-nightly.outputs.version != steps.get-current.outputs.version
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add rust-toolchain.toml Makefile .github/workflows/ci.yml
+          git commit -m "chore: update Rust nightly to ${{ steps.get-nightly.outputs.version }}"
+
+      - name: Add changelog entry
+        if: steps.get-nightly.outputs.version != steps.get-current.outputs.version
+        run: |
+          DATE=$(echo "${{ steps.get-nightly.outputs.version }}" | sed 's/nightly-//')
+          sed -i "/^### Changed$/a\\
+          - Update Rust nightly to \`${{ steps.get-nightly.outputs.version }}\`" CHANGELOG.md
+          git add CHANGELOG.md
+          git commit -m "docs: add changelog entry for Rust ${{ steps.get-nightly.outputs.version }}"
 
       - name: Create Pull Request
         if: steps.get-nightly.outputs.version != steps.get-current.outputs.version
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.PAT_WORKFLOW }}
-          commit-message: "chore: update Rust nightly to ${{ steps.get-nightly.outputs.version }}"
           title: "chore: update Rust nightly to ${{ steps.get-nightly.outputs.version }}"
           body: |
             Automated update of Rust nightly version.
@@ -51,11 +66,12 @@ jobs:
             - `rust-toolchain.toml`
             - `Makefile`
             - `.github/workflows/ci.yml`
+            - `CHANGELOG.md`
 
             **From:** `${{ steps.get-current.outputs.version }}`
             **To:** `${{ steps.get-nightly.outputs.version }}`
 
             Please review and ensure CI passes before merging.
-          branch: chore/update-rust-nightly
+          branch: chore/update-rust-${{ steps.get-nightly.outputs.version }}
           base: develop
           delete-branch: true
