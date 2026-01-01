@@ -57,7 +57,7 @@ jobs:
         run: make build-sass
 
       - name: Generate checksums
-        run: node scripts/generate-checksums.js
+        run: make generate-checksums
 
       - name: Inject commit hash
         run: |
