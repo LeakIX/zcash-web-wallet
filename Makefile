@@ -95,6 +95,15 @@ verify-checksums: ## Verify CHECKSUMS.json is up to date
 	@echo "Verifying checksums..."
 	node scripts/verify-checksums.js
 
+.PHONY: inject-commit
+inject-commit: ## Inject current commit hash into index.html (run before merging to main)
+	@echo "Injecting commit hash into index.html..."
+	@COMMIT_HASH=$$(git rev-parse HEAD); \
+	COMMIT_SHORT=$$(git rev-parse --short HEAD); \
+	$(SED) -i "s/__COMMIT_HASH__/$${COMMIT_HASH}/g" frontend/index.html; \
+	$(SED) -i "s/__COMMIT_SHORT__/$${COMMIT_SHORT}/g" frontend/index.html; \
+	echo "Injected commit: $${COMMIT_SHORT}"
+
 # =============================================================================
 # Development
 # =============================================================================

@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [develop]
   pull_request:
     branches: [main, develop]
 
@@ -14,6 +14,7 @@ env:
 jobs:
   rust:
     name: Rust WASM Build & Test (${{ matrix.os }})
+    if: github.base_ref != 'main'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -60,6 +61,7 @@ jobs:
 
   cli:
     name: CLI Build & Test (${{ matrix.os }})
+    if: github.base_ref != 'main'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -100,6 +102,7 @@ jobs:
 
   frontend:
     name: Frontend Build & Lint (${{ matrix.os }})
+    if: github.base_ref != 'main'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -126,14 +129,9 @@ jobs:
       - name: Build Sass
         run: make build-sass
 
-      - name: Upload CSS artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: css-${{ matrix.os }}
-          path: frontend/css/
-
   lint:
     name: Lint Shell Scripts
+    if: github.base_ref != 'main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -143,7 +141,7 @@ jobs:
 
   verify-wasm-commits:
     name: Verify WASM Commits
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.base_ref != 'main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -155,7 +153,7 @@ jobs:
 
   verify-css-commits:
     name: Verify CSS Commits
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.base_ref != 'main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -167,7 +165,7 @@ jobs:
 
   verify-checksum-commits:
     name: Verify Checksum Commits
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.base_ref != 'main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -179,7 +177,7 @@ jobs:
 
   verify-changelog:
     name: Verify Changelog
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.base_ref != 'main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -196,8 +194,44 @@ jobs:
           fi
           echo "OK: CHANGELOG.md is updated"
 
+  verify-commit-placeholder-develop:
+    name: Verify Commit Placeholder (develop)
+    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify __COMMIT_HASH__ placeholder is present
+        run: |
+          if ! grep -q "__COMMIT_HASH__" frontend/index.html; then
+            echo "ERROR: __COMMIT_HASH__ placeholder not found in index.html"
+            echo ""
+            echo "The develop branch must keep the __COMMIT_HASH__ placeholder."
+            echo "To deploy to main, create a release branch and inject the commit there."
+            exit 1
+          fi
+          echo "OK: __COMMIT_HASH__ placeholder is present"
+
+  verify-commit-injected-main:
+    name: Verify Commit Injected (main)
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify __COMMIT_HASH__ is injected
+        run: |
+          if grep -q "__COMMIT_HASH__" frontend/index.html; then
+            echo "ERROR: __COMMIT_HASH__ placeholder found in index.html"
+            echo ""
+            echo "Before merging to main, run 'make inject-commit' and commit the result."
+            exit 1
+          fi
+          echo "OK: Commit hash is injected"
+
   pages-build:
     name: Pages Build (${{ matrix.os }})
+    if: github.base_ref != 'main'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -229,6 +263,7 @@ jobs:
 
   build-complete:
     name: Build Complete
+    if: github.base_ref != 'main'
     needs: [rust, cli, frontend, lint, pages-build]
     runs-on: ubuntu-latest
     steps:
