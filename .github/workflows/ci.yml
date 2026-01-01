@@ -181,24 +181,62 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
+            const marker = '<!-- checksum-bot-comment -->';
+            const body = marker + '\n## Checksums Outdated\n\nThe `CHECKSUMS.json` file is out of date. Please run:\n\n```bash\nmake build && make generate-checksums\n```\n\nThen commit the updated `CHECKSUMS.json` file **in a separate commit**.';
+
+            const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '## Checksums Outdated\n\nThe `CHECKSUMS.json` file is out of date. Please run:\n\n```bash\nmake build && make generate-checksums\n```\n\nThen commit the updated `CHECKSUMS.json` file **in a separate commit**.'
-            })
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body,
+              });
+            }
 
       - name: Comment on PR if checksum commit rules violated
         if: steps.verify-commit.outcome == 'failure' && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
+            const marker = '<!-- checksum-bot-comment -->';
+            const body = marker + '\n## Checksum Commit Rules Violated\n\nTo ease review by external auditors, `CHECKSUMS.json` must be updated in its own dedicated commit.\n\n**Rules:**\n1. If you modify checksummed files, you must also update `CHECKSUMS.json`\n2. The `CHECKSUMS.json` update must be in a **separate commit** containing only that file\n\n**How to fix:**\n```bash\n# After your code changes are committed:\nmake build && make generate-checksums\ngit add CHECKSUMS.json\ngit commit -m "chore: update CHECKSUMS.json"\n```';
+
+            const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '## Checksum Commit Rules Violated\n\nTo ease review by external auditors, `CHECKSUMS.json` must be updated in its own dedicated commit.\n\n**Rules:**\n1. If you modify checksummed files, you must also update `CHECKSUMS.json`\n2. The `CHECKSUMS.json` update must be in a **separate commit** containing only that file\n\n**How to fix:**\n```bash\n# After your code changes are committed:\nmake build && make generate-checksums\ngit add CHECKSUMS.json\ngit commit -m "chore: update CHECKSUMS.json"\n```'
-            })
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body,
+              });
+            }
 
       - name: Fail if any verification failed
         if: steps.verify-checksums.outcome == 'failure' || steps.verify-commit.outcome == 'failure'
