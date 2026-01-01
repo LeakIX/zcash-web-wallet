@@ -41,7 +41,7 @@ jobs:
         if: steps.get-nightly.outputs.version != steps.get-current.outputs.version
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_WORKFLOW }}
           commit-message: "chore: update Rust nightly to ${{ steps.get-nightly.outputs.version }}"
           title: "chore: update Rust nightly to ${{ steps.get-nightly.outputs.version }}"
           body: |
