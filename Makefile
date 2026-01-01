@@ -197,7 +197,7 @@ lint-shell: ## Lint shell scripts with shellcheck
 # =============================================================================
 
 .PHONY: test
-test: test-rust test-e2e ## Run all tests
+test: test-rust test-e2e test-e2e-frontend ## Run all tests
 	@echo "All tests passed"
 
 .PHONY: test-rust
@@ -223,6 +223,21 @@ test-cli: ## Run CLI unit tests
 test-e2e: build-cli ## Run CLI end-to-end tests
 	@echo "Running CLI e2e tests..."
 	cli/e2e/test_cli.sh
+
+.PHONY: test-e2e-frontend
+test-e2e-frontend: build ## Run frontend end-to-end tests
+	@echo "Running frontend e2e tests..."
+	npx playwright test
+
+.PHONY: test-e2e-frontend-ui
+test-e2e-frontend-ui: build ## Run frontend e2e tests in UI mode
+	@echo "Running frontend e2e tests in UI mode..."
+	npx playwright test --ui
+
+.PHONY: test-e2e-frontend-headed
+test-e2e-frontend-headed: build ## Run frontend e2e tests in headed mode
+	@echo "Running frontend e2e tests in headed mode..."
+	npx playwright test --headed
 
 # =============================================================================
 # Code Coverage
