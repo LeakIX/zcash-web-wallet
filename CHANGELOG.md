@@ -16,6 +16,8 @@ and this project adheres to
 - Add code coverage with cargo-llvm-cov and Codecov integration
   ([#22](https://github.com/LeakIX/zcash-web-wallet/issues/22),
   [#116](https://github.com/LeakIX/zcash-web-wallet/pull/116))
+- Pin Rust nightly version for reproducible builds with weekly auto-update CI
+  ([#129](https://github.com/LeakIX/zcash-web-wallet/issues/129))
 
 ## [0.1.0] - 2025-12-30
 

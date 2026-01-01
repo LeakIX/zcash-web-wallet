@@ -8,6 +8,8 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  # When updating RUST_NIGHTLY, also update rust-toolchain.toml and Makefile
+  RUST_NIGHTLY: nightly-2025-12-30
 
 jobs:
   rust:
@@ -19,17 +21,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust nightly
-        uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: rustfmt, clippy
-          targets: wasm32-unknown-unknown
-
       - name: Install LLVM (macOS)
         if: runner.os == 'macOS'
         run: brew install llvm
 
-      - name: Install wasm-pack
+      - name: Install Rust toolchain and wasm-pack
         run: make install-wasm-pack
 
       - name: Cache Cargo
@@ -71,10 +67,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust nightly
-        uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: rustfmt, clippy
+      - name: Install Rust toolchain
+        run: make install-wasm-pack
 
       - name: Cache Cargo
         uses: actions/cache@v4
