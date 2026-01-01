@@ -20,6 +20,7 @@ and this project adheres to
   ([#129](https://github.com/LeakIX/zcash-web-wallet/issues/129))
 
 ### Changed
+- Update Rust nightly to `nightly-2025-12-31`
 
 - Require GNU sed on macOS for Makefile targets (`brew install gnu-sed`)
 - CI now uses git-based check to verify generated files are committed separately
