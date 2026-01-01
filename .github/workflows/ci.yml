@@ -130,11 +130,18 @@ jobs:
         run: make build-sass
 
   e2e:
-    name: E2E Tests
+    name: E2E Tests (${{ matrix.os }})
     if: github.base_ref != 'main'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: brew install llvm gnu-sed
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -157,7 +164,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.os }}
           path: playwright-report/
           retention-days: 30
 
