@@ -192,6 +192,26 @@ pub enum ErrorCorrectionLevel {
     H = 3,
 }
 
+impl ErrorCorrectionLevel {
+    /// Get the format info indicator bits for this EC level.
+    ///
+    /// Per ISO 18004:2015 Table C.1, the 2-bit indicators are:
+    /// - L = 01 (not 00!)
+    /// - M = 00 (not 01!)
+    /// - Q = 11
+    /// - H = 10
+    ///
+    /// Note: This encoding differs from the natural enum ordering.
+    fn format_info_bits(self) -> u32 {
+        match self {
+            ErrorCorrectionLevel::L => 0b01,
+            ErrorCorrectionLevel::M => 0b00,
+            ErrorCorrectionLevel::Q => 0b11,
+            ErrorCorrectionLevel::H => 0b10,
+        }
+    }
+}
+
 /// QR Code encoding modes.
 ///
 /// Different modes have different efficiency for different character sets.
@@ -902,7 +922,9 @@ impl QrCode {
         let size = self.modules.len();
 
         // Calculate format bits
-        let data = ((self.error_correction as u32) << 3) | (self.mask as u32);
+        // Format data: [EC level (2 bits)][Mask pattern (3 bits)]
+        // Uses the correct EC level encoding per ISO 18004 Table C.1
+        let data = (self.error_correction.format_info_bits() << 3) | (self.mask as u32);
         let format_bits = Self::calculate_format_bits(data);
 
         // Place around top-left finder pattern
@@ -1404,6 +1426,61 @@ mod tests {
         assert!(svg.starts_with("<svg"));
         assert!(svg.contains("viewBox"));
         assert!(svg.ends_with("</svg>"));
+    }
+
+    /// Test EC level format info encoding per ISO 18004:2015 Table C.1.
+    ///
+    /// The encoding is NOT the same as the natural ordering:
+    /// - L (least recovery) = 01, not 00
+    /// - M (medium recovery) = 00, not 01
+    /// - Q (quartile recovery) = 11
+    /// - H (highest recovery) = 10
+    #[test]
+    fn test_ec_level_format_info_bits() {
+        assert_eq!(ErrorCorrectionLevel::L.format_info_bits(), 0b01);
+        assert_eq!(ErrorCorrectionLevel::M.format_info_bits(), 0b00);
+        assert_eq!(ErrorCorrectionLevel::Q.format_info_bits(), 0b11);
+        assert_eq!(ErrorCorrectionLevel::H.format_info_bits(), 0b10);
+    }
+
+    /// Test format bits calculation matches known values from ISO 18004 Table C.2.
+    ///
+    /// Format info = (EC level << 3 | mask) with BCH(15,5) EC, XORed with 0x5412.
+    /// Generator polynomial: x^10 + x^8 + x^5 + x^4 + x^2 + x + 1 (0x537).
+    #[test]
+    fn test_format_bits_known_values() {
+        // Format: (data_bits, expected_format)
+        // Data = (EC level format bits << 3) | mask
+        // Values computed per ISO 18004 BCH(15,5) algorithm
+        let test_cases = [
+            // M-0: EC=00, mask=000 -> data=0b00000
+            (0b00_000, 0b101010000010010),
+            // M-1: EC=00, mask=001 -> data=0b00001
+            (0b00_001, 0b101000100100101),
+            // M-2: EC=00, mask=010 -> data=0b00010
+            (0b00_010, 0b101111001111100),
+            // L-0: EC=01, mask=000 -> data=0b01000
+            (0b01_000, 0b111011111000100),
+            // L-1: EC=01, mask=001 -> data=0b01001
+            (0b01_001, 0b111001011110011),
+            // H-0: EC=10, mask=000 -> data=0b10000
+            (0b10_000, 0b001011010001001),
+            // H-1: EC=10, mask=001 -> data=0b10001
+            (0b10_001, 0b001001110111110),
+            // Q-0: EC=11, mask=000 -> data=0b11000
+            (0b11_000, 0b011010101011111),
+            // Q-1: EC=11, mask=001 -> data=0b11001
+            (0b11_001, 0b011000001101000),
+        ];
+
+        for (data, expected) in test_cases {
+            let result = QrCode::calculate_format_bits(data);
+            assert_eq!(
+                result, expected,
+                "Format bits mismatch for data={:#07b}: got {:#017b}, expected {:#017b}",
+                data, result, expected
+            );
+        }
     }
 }
 
