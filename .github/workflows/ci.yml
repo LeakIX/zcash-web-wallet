@@ -129,6 +129,45 @@ jobs:
       - name: Build Sass
         run: make build-sass
 
+  e2e:
+    name: E2E Tests (${{ matrix.os }})
+    if: github.base_ref != 'main'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: brew install llvm gnu-sed
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install Rust toolchain and wasm-pack
+        run: make install-wasm-pack
+
+      - name: Install npm dependencies
+        run: make install-npm
+
+      - name: Install Playwright
+        run: make install-playwright
+
+      - name: Run E2E tests
+        run: make test-e2e-frontend
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ matrix.os }}
+          path: playwright-report/
+          retention-days: 30
+
   lint:
     name: Lint Shell Scripts
     if: github.base_ref != 'main'

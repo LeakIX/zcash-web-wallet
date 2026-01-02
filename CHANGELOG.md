@@ -8,6 +8,10 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Add Playwright E2E tests for frontend with CI integration on ubuntu and macOS
+
 ## 0.2.0 - 20260101
 
 ### Added
