@@ -3,6 +3,7 @@ name = "zcash-wallet-cli"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
 description = "CLI tool for generating Zcash testnet wallets"
 
 [[bin]]

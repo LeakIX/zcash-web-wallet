@@ -3,6 +3,7 @@ name = "zcash-wallet-core"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
 description = "Core library for Zcash wallet derivation and transaction scanning"
 
 [dependencies]

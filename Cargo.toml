@@ -6,6 +6,7 @@ members = ["core", "wasm-module", "cli"]
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
+repository = "https://github.com/LeakIX/zcash-web-wallet"
 
 [workspace.dependencies]
 # HTML builder
