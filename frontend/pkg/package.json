@@ -4,6 +4,10 @@
   "description": "WASM module for decrypting Zcash shielded transactions",
   "version": "0.1.0",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LeakIX/zcash-web-wallet"
+  },
   "files": [
     "zcash_tx_viewer_bg.wasm",
     "zcash_tx_viewer.js",
