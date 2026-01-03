@@ -164,6 +164,9 @@ jobs:
       - name: Run E2E tests (Mobile Chrome)
         run: make test-e2e-frontend-mobile-chrome
 
+      - name: Run E2E tests (Mobile Safari)
+        run: make test-e2e-frontend-mobile-safari
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
