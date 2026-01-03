@@ -990,6 +990,79 @@ export function render_broadcast_result(message, alert_type) {
 }
 
 /**
+ * Generate HTML for the derived addresses table.
+ *
+ * Creates a table displaying derived transparent and unified addresses with
+ * duplicate detection and copy buttons.
+ *
+ * # Arguments
+ *
+ * * `addresses_json` - JSON array of DerivedAddress objects
+ * * `network` - Network name ("mainnet" or "testnet") for explorer links
+ *
+ * # Returns
+ *
+ * HTML string for the addresses table including duplicate warning if applicable.
+ * @param {string} addresses_json
+ * @param {string} network
+ * @returns {string}
+ */
+export function render_derived_addresses_table(addresses_json, network) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(addresses_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(network, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.render_derived_addresses_table(ptr0, len0, ptr1, len1);
+        deferred3_0 = ret[0];
+        deferred3_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
+ * Generate HTML for a dismissible info/success alert.
+ *
+ * Creates a Bootstrap dismissible alert for address operations.
+ *
+ * # Arguments
+ *
+ * * `message` - The message to display
+ * * `alert_type` - Bootstrap alert type ("success", "info", "warning", "danger")
+ * * `icon_class` - Bootstrap icon class (e.g., "bi-check-circle", "bi-info-circle")
+ *
+ * # Returns
+ *
+ * HTML string for the dismissible alert.
+ * @param {string} message
+ * @param {string} alert_type
+ * @param {string} icon_class
+ * @returns {string}
+ */
+export function render_dismissible_alert(message, alert_type, icon_class) {
+    let deferred4_0;
+    let deferred4_1;
+    try {
+        const ptr0 = passStringToWasm0(message, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(alert_type, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(icon_class, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ret = wasm.render_dismissible_alert(ptr0, len0, ptr1, len1, ptr2, len2);
+        deferred4_0 = ret[0];
+        deferred4_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
+    }
+}
+
+/**
  * Generate HTML for an empty state message.
  *
  * Creates a centered message for empty lists.
@@ -1165,6 +1238,36 @@ export function render_sapling_outputs(outputs_json) {
         const ptr0 = passStringToWasm0(outputs_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.render_sapling_outputs(ptr0, len0);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * Generate HTML for the saved wallets list.
+ *
+ * Creates a list group displaying saved wallets with view/delete buttons.
+ *
+ * # Arguments
+ *
+ * * `wallets_json` - JSON array of SavedWallet objects
+ *
+ * # Returns
+ *
+ * HTML string for the wallets list.
+ * @param {string} wallets_json
+ * @returns {string}
+ */
+export function render_saved_wallets_list(wallets_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passStringToWasm0(wallets_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.render_saved_wallets_list(ptr0, len0);
         deferred2_0 = ret[0];
         deferred2_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);

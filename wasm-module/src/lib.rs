@@ -3622,6 +3622,284 @@ pub fn render_broadcast_result(message: &str, alert_type: &str) -> String {
         .render()
 }
 
+/// Derived address entry for address viewer.
+#[derive(serde::Deserialize)]
+struct DerivedAddress {
+    index: u32,
+    transparent: String,
+    unified: String,
+    #[serde(rename = "isSaved")]
+    is_saved: bool,
+}
+
+/// Generate HTML for the derived addresses table.
+///
+/// Creates a table displaying derived transparent and unified addresses with
+/// duplicate detection and copy buttons.
+///
+/// # Arguments
+///
+/// * `addresses_json` - JSON array of DerivedAddress objects
+/// * `network` - Network name ("mainnet" or "testnet") for explorer links
+///
+/// # Returns
+///
+/// HTML string for the addresses table including duplicate warning if applicable.
+#[wasm_bindgen]
+pub fn render_derived_addresses_table(addresses_json: &str, network: &str) -> String {
+    let addresses: Vec<DerivedAddress> = match serde_json::from_str(addresses_json) {
+        Ok(a) => a,
+        Err(_) => return String::new(),
+    };
+
+    if addresses.is_empty() {
+        return render_empty_state("No addresses derived.", "bi-card-list");
+    }
+
+    let explorer_base = if network == "mainnet" {
+        "https://zcashexplorer.app"
+    } else {
+        "https://testnet.zcashexplorer.app"
+    };
+
+    // Detect duplicates - track first occurrence of each unified address
+    let mut first_occurrence: std::collections::HashMap<&str, u32> =
+        std::collections::HashMap::new();
+    let mut duplicate_indices: std::collections::HashSet<u32> = std::collections::HashSet::new();
+
+    for addr in &addresses {
+        if let Some(&first_idx) = first_occurrence.get(addr.unified.as_str()) {
+            duplicate_indices.insert(addr.index);
+            // Keep track of the first occurrence for the badge tooltip
+            let _ = first_idx;
+        } else {
+            first_occurrence.insert(&addr.unified, addr.index);
+        }
+    }
+
+    let duplicate_count = duplicate_indices.len();
+
+    let mut container = Element::new("div");
+
+    // Add duplicate warning if needed
+    if duplicate_count > 0 {
+        container = container.child("div", |alert| {
+            alert
+                .class("alert")
+                .class("alert-warning")
+                .class("py-2")
+                .class("mb-3")
+                .class("sapling-note")
+                .child("i", |i| {
+                    i.class("bi").class("bi-exclamation-triangle").class("me-1")
+                })
+                .child("strong", |s| s.text("Duplicate addresses detected:"))
+                .text(format!(
+                    " {} indices produce duplicate unified addresses \
+                     due to Sapling diversifier behavior. Avoid reusing these addresses.",
+                    duplicate_count
+                ))
+        });
+    }
+
+    // Build table body
+    let mut tbody = Element::new("tbody");
+
+    for (idx, addr) in addresses.iter().enumerate() {
+        let explorer_url = format!("{}/addresses/{}", explorer_base, addr.transparent);
+        let is_duplicate = duplicate_indices.contains(&addr.index);
+
+        // Truncate addresses for display
+        let transparent_display = if addr.transparent.len() > 14 {
+            format!(
+                "{}...{}",
+                &addr.transparent[..8],
+                &addr.transparent[addr.transparent.len() - 6..]
+            )
+        } else {
+            addr.transparent.clone()
+        };
+
+        let unified_display = if addr.unified.len() > 18 {
+            format!(
+                "{}...{}",
+                &addr.unified[..10],
+                &addr.unified[addr.unified.len() - 8..]
+            )
+        } else {
+            addr.unified.clone()
+        };
+
+        let transparent_id = format!("copy-transparent-{}", idx);
+        let unified_id = format!("copy-unified-{}", idx);
+
+        let first_idx = first_occurrence.get(addr.unified.as_str()).copied();
+
+        tbody = tbody.child("tr", |tr| {
+            let mut row = tr;
+            if is_duplicate {
+                row = row.class("table-warning");
+            }
+
+            row.child("td", |td| {
+                td.class("text-muted").class("align-middle").text(format!("{}", addr.index))
+            })
+            .child("td", |td| {
+                td.child("div", |d| {
+                    d.class("d-flex").class("align-items-center").child("a", |a| {
+                        a.attr("href", &explorer_url)
+                            .attr("target", "_blank")
+                            .attr("rel", "noopener noreferrer")
+                            .class("mono")
+                            .class("small")
+                            .class("text-truncate")
+                            .attr("style", "max-width: 150px;")
+                            .attr("title", &addr.transparent)
+                            .text(&transparent_display)
+                    })
+                    .child("button", |btn| {
+                        btn.attr("id", &transparent_id)
+                            .class("btn")
+                            .class("btn-sm")
+                            .class("btn-link")
+                            .class("p-0")
+                            .class("text-muted")
+                            .class("ms-1")
+                            .attr(
+                                "onclick",
+                                format!("copyAddress('{}', '{}')", &addr.transparent, &transparent_id),
+                            )
+                            .attr("title", "Copy address")
+                            .child("i", |i| i.class("bi").class("bi-clipboard"))
+                    })
+                })
+            })
+            .child("td", |td| {
+                td.child("div", |d| {
+                    let mut div = d.class("d-flex").class("align-items-center").child("span", |s| {
+                        s.class("mono")
+                            .class("small")
+                            .class("text-truncate")
+                            .attr("style", "max-width: 200px;")
+                            .attr("title", &addr.unified)
+                            .text(&unified_display)
+                    })
+                    .child("button", |btn| {
+                        btn.attr("id", &unified_id)
+                            .class("btn")
+                            .class("btn-sm")
+                            .class("btn-link")
+                            .class("p-0")
+                            .class("text-muted")
+                            .class("ms-1")
+                            .attr(
+                                "onclick",
+                                format!("copyAddress('{}', '{}')", &addr.unified, &unified_id),
+                            )
+                            .attr("title", "Copy address")
+                            .child("i", |i| i.class("bi").class("bi-clipboard"))
+                    });
+
+                    if let Some(first) = first_idx.filter(|_| is_duplicate) {
+                        div = div.child("span", |span| {
+                            span.class("badge")
+                                .class("bg-warning")
+                                .class("text-dark")
+                                .class("ms-1")
+                                .attr(
+                                    "title",
+                                    format!(
+                                        "This address is identical to index {} due to Sapling diversifier behavior. Avoid reusing.",
+                                        first
+                                    ),
+                                )
+                                .child("i", |i| {
+                                    i.class("bi").class("bi-exclamation-triangle-fill")
+                                })
+                                .text(" Duplicate")
+                        });
+                    }
+
+                    div
+                })
+            })
+            .child("td", |td| {
+                td.class("text-center").class("align-middle").child("i", |i| {
+                    if addr.is_saved {
+                        i.class("bi")
+                            .class("bi-check-circle-fill")
+                            .class("text-success")
+                            .attr("title", "Saved to wallet")
+                    } else {
+                        i.class("bi")
+                            .class("bi-circle")
+                            .class("text-muted")
+                            .attr("title", "Not saved")
+                    }
+                })
+            })
+        });
+    }
+
+    // Build complete table structure
+    container = container.child("div", |wrapper| {
+        wrapper.class("table-responsive").child("table", |table| {
+            table
+                .class("table")
+                .class("table-sm")
+                .class("table-hover")
+                .class("mb-0")
+                .child("thead", |thead| {
+                    thead.child("tr", |tr| {
+                        tr.child("th", |th| th.attr("style", "width: 60px;").text("Index"))
+                            .child("th", |th| th.text("Transparent Address"))
+                            .child("th", |th| th.text("Unified Address"))
+                            .child("th", |th| {
+                                th.attr("style", "width: 60px;")
+                                    .class("text-center")
+                                    .text("Saved")
+                            })
+                    })
+                })
+                .raw(tbody.render())
+        })
+    });
+
+    container.render()
+}
+
+/// Generate HTML for a dismissible info/success alert.
+///
+/// Creates a Bootstrap dismissible alert for address operations.
+///
+/// # Arguments
+///
+/// * `message` - The message to display
+/// * `alert_type` - Bootstrap alert type ("success", "info", "warning", "danger")
+/// * `icon_class` - Bootstrap icon class (e.g., "bi-check-circle", "bi-info-circle")
+///
+/// # Returns
+///
+/// HTML string for the dismissible alert.
+#[wasm_bindgen]
+pub fn render_dismissible_alert(message: &str, alert_type: &str, icon_class: &str) -> String {
+    Element::new("div")
+        .class("alert")
+        .class(format!("alert-{}", alert_type))
+        .class("alert-dismissible")
+        .class("fade")
+        .class("show")
+        .class("mb-3")
+        .child("i", |i| i.class("bi").class(icon_class).class("me-1"))
+        .text(format!(" {}", message))
+        .child("button", |btn| {
+            btn.attr("type", "button")
+                .class("btn-close")
+                .attr("data-bs-dismiss", "alert")
+        })
+        .render()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

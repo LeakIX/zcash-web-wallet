@@ -1,13 +1,13 @@
 {
-  "version": "be8214ab841e6418a6e140dd93873a0a85e78a3f",
-  "timestamp": "2026-01-03T15:01:11.919Z",
+  "version": "9ef21bd0afa0b8da3d341a9a73a7b162ee20a311",
+  "timestamp": "2026-01-03T15:22:12.050Z",
   "files": {
     "js/app.js": "64fc865eb0fd2ce589abdc176a0af3fff5653ee8a6e619e75702b162469ead8c",
     "js/wasm.js": "d59292cdb2e7884ec9d8e05d1accc9f5ec81871119128580039fb6d014f7b8fd",
     "js/decrypt-viewer.js": "22937ceb279aa835696b07c13b805ada5521bf5d4c99a1148deadbdd0cbb7df9",
     "js/scanner.js": "11d9f5205547a6d57c518641b0f446d07045be11552c4f4a25e9a0ec9ff03454",
     "js/wallet.js": "439abd0f642e804d87d0dff4b704fb8fc501139ea6e66564a3e53e2dd07e788a",
-    "js/addresses.js": "177865ed6df69c1bf687b9e1e633b5e18a6c2e6fcff41e06bb42a25b9b70aecf",
+    "js/addresses.js": "0d4bd8054f9170a5d9986db624de8348a15e0b35fb5be501f03309c6d36797b3",
     "js/send.js": "93d5922395e187bfd63e368c63a86ff49c1fc695c732e5db7e727c54b3c134a3",
     "js/views.js": "a1e863c2242762a2a5f2d5ddb87a7edc362531f63d7c4ab9a274ab5df57cf83d",
     "js/theme.js": "8b28e4862c889ae879580cf31305045f52911c9c6c14b1e01cc0e5e54c13a6e1",
@@ -20,7 +20,7 @@
     "js/storage/ledger.js": "9c27db3ca5d269b6de53fdf5382ae36b4c12ccd9e87c7556387be6d28295f55c",
     "css/style.css": "e96edf0153354cbfd64beeb8912f1b8204784db62153949e67f3f80d54f0a5f6",
     "index.html": "7adb0e5a0e04b9579eed30295f21b085e343c71cf88ea16f8b40f949b467e740",
-    "pkg/zcash_tx_viewer.js": "2d96867a9710e92a3540900d2d1bbae034deab65e60810d82ea94304ec161992",
-    "pkg/zcash_tx_viewer_bg.wasm": "bbb6cf2db9925ddb0874d0fd778e92d533524814d3c2327a34a149d2b500f9cc"
+    "pkg/zcash_tx_viewer.js": "7445acb96a78287359dd6c959951419943f87c42d7a0fc58bd0d3539d967ba16",
+    "pkg/zcash_tx_viewer_bg.wasm": "4f941112ca80162ab4ab304582d15fbd1417532afea7ce6b9ae92e371f647aab"
   }
 }
