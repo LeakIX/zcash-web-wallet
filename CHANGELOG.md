@@ -30,6 +30,13 @@ and this project adheres to
 - Add transaction scanning E2E tests with real transaction fixtures
   ([#178](https://github.com/LeakIX/zcash-web-wallet/issues/178),
   [#186](https://github.com/LeakIX/zcash-web-wallet/pull/186))
+- Add contact address book for managing frequently used addresses
+  ([#195](https://github.com/LeakIX/zcash-web-wallet/issues/195))
+  - Save contacts with name, address, network, and notes
+  - Address validation when adding/editing contacts
+  - Autocomplete in send address fields (simple and admin views)
+  - Import/export contacts as JSON or CSV
+  - Add render_contacts_list(), render_contacts_dropdown() WASM functions
 
 ### Changed
 

@@ -62,7 +62,7 @@ test.describe("Send Transaction", () => {
     await expect(recipientInput).toBeVisible();
     await expect(recipientInput).toHaveAttribute(
       "placeholder",
-      "t1... or u1..."
+      "Enter address or search contacts..."
     );
   });
 
@@ -103,7 +103,7 @@ test.describe("Send Transaction", () => {
     await expect(recipientInput).toBeVisible();
     await expect(recipientInput).toHaveAttribute(
       "placeholder",
-      "t1... or u1..."
+      "Enter address or search contacts..."
     );
   });
 

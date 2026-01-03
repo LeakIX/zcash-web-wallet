@@ -990,6 +990,67 @@ export function render_broadcast_result(message, alert_type) {
 }
 
 /**
+ * Render contacts as dropdown options for address selection.
+ *
+ * # Arguments
+ *
+ * * `contacts_json` - JSON string containing an array of contact objects
+ * * `network` - Network filter ("mainnet", "testnet", or empty for all)
+ *
+ * # Returns
+ *
+ * HTML string containing option elements for a select dropdown.
+ * @param {string} contacts_json
+ * @param {string} network
+ * @returns {string}
+ */
+export function render_contacts_dropdown(contacts_json, network) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(contacts_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(network, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.render_contacts_dropdown(ptr0, len0, ptr1, len1);
+        deferred3_0 = ret[0];
+        deferred3_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
+ * Render a list of contacts as HTML.
+ *
+ * # Arguments
+ *
+ * * `contacts_json` - JSON string containing an array of contact objects
+ *
+ * # Returns
+ *
+ * HTML string containing a list-group of contacts with edit/delete buttons,
+ * or an empty state message if no contacts exist.
+ * @param {string} contacts_json
+ * @returns {string}
+ */
+export function render_contacts_list(contacts_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passStringToWasm0(contacts_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.render_contacts_list(ptr0, len0);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
  * Generate HTML for the derived addresses table.
  *
  * Creates a table displaying derived transparent and unified addresses with
