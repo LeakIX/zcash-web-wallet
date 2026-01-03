@@ -230,9 +230,24 @@ test-e2e: build-cli ## Run CLI end-to-end tests
 	cli/e2e/test_cli.sh
 
 .PHONY: test-e2e-frontend
-test-e2e-frontend: build ## Run frontend end-to-end tests
+test-e2e-frontend: build ## Run frontend e2e tests (all devices)
 	@echo "Running frontend e2e tests..."
 	npx playwright test
+
+.PHONY: test-e2e-frontend-desktop
+test-e2e-frontend-desktop: build ## Run frontend e2e tests on desktop Chrome only
+	@echo "Running frontend e2e tests (desktop)..."
+	npx playwright test --project=chromium
+
+.PHONY: test-e2e-frontend-mobile-chrome
+test-e2e-frontend-mobile-chrome: build ## Run frontend e2e tests on mobile Chrome only
+	@echo "Running frontend e2e tests (mobile Chrome)..."
+	npx playwright test --project=mobile-chrome
+
+.PHONY: test-e2e-frontend-mobile-safari
+test-e2e-frontend-mobile-safari: build ## Run frontend e2e tests on mobile Safari only
+	@echo "Running frontend e2e tests (mobile Safari)..."
+	npx playwright test --project=mobile-safari
 
 .PHONY: test-e2e-frontend-ui
 test-e2e-frontend-ui: build ## Run frontend e2e tests in UI mode

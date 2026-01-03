@@ -36,20 +36,40 @@ export async function waitForWasmLoad(page) {
   );
 }
 
-export async function switchToAdminView(page) {
-  const viewModeRadio = page.locator("#viewAdmin");
-  if (!(await viewModeRadio.isChecked())) {
-    // Click the label, not the hidden radio input
-    await page.locator('label[for="viewAdmin"]').click();
+async function switchViewMode(page, mode) {
+  // Check if mobile dropdown is visible
+  const mobileDropdown = page.locator("#viewModeDropdown");
+  const isMobile = await mobileDropdown.isVisible();
+
+  if (isMobile) {
+    // Mobile: Use dropdown
+    await mobileDropdown.click();
+    await page.locator(`button[data-view-mode="${mode}"]`).click();
+  } else {
+    // Desktop: Use radio button labels
+    const viewModeRadio = page.locator(
+      `#view${mode.charAt(0).toUpperCase() + mode.slice(1)}`
+    );
+    if (!(await viewModeRadio.isChecked())) {
+      await page
+        .locator(
+          `label[for="view${mode.charAt(0).toUpperCase() + mode.slice(1)}"]`
+        )
+        .click();
+    }
   }
 }
 
+export async function switchToAdminView(page) {
+  await switchViewMode(page, "admin");
+}
+
 export async function switchToSimpleView(page) {
-  const viewModeRadio = page.locator("#viewSimple");
-  if (!(await viewModeRadio.isChecked())) {
-    // Click the label, not the hidden radio input
-    await page.locator('label[for="viewSimple"]').click();
-  }
+  await switchViewMode(page, "simple");
+}
+
+export async function switchToAccountantView(page) {
+  await switchViewMode(page, "accountant");
 }
 
 export async function navigateToTab(page, tabId) {

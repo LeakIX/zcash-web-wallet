@@ -3,6 +3,7 @@ import {
   clearLocalStorage,
   switchToSimpleView,
   switchToAdminView,
+  switchToAccountantView,
   waitForWasmLoad,
 } from "./helpers.js";
 
@@ -88,7 +89,7 @@ test.describe("View Mode", () => {
   });
 
   test("should switch to accountant view", async ({ page }) => {
-    await page.locator('label[for="viewAccountant"]').click();
+    await switchToAccountantView(page);
 
     await expect(page.locator("#viewAccountant")).toBeChecked();
   });

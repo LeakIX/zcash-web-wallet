@@ -158,8 +158,11 @@ jobs:
       - name: Install Playwright
         run: make install-playwright
 
-      - name: Run E2E tests
-        run: make test-e2e-frontend
+      - name: Run E2E tests (Desktop)
+        run: make test-e2e-frontend-desktop
+
+      - name: Run E2E tests (Mobile Chrome)
+        run: make test-e2e-frontend-mobile-chrome
 
       - uses: actions/upload-artifact@v4
         if: always()
