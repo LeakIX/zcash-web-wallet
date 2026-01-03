@@ -93,12 +93,12 @@ build-sass: ## Compile Sass to CSS
 .PHONY: generate-checksums
 generate-checksums: ## Generate checksums for frontend files
 	@echo "Generating checksums..."
-	node scripts/generate-checksums.js
+	node scripts/generate-checksums.cjs
 
 .PHONY: verify-checksums
 verify-checksums: ## Verify CHECKSUMS.json is up to date
 	@echo "Verifying checksums..."
-	node scripts/verify-checksums.js
+	node scripts/verify-checksums.cjs
 
 # =============================================================================
 # Development
