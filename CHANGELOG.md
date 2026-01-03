@@ -19,8 +19,8 @@ and this project adheres to
 - Add mobile responsive testing with Playwright
   ([#176](https://github.com/LeakIX/zcash-web-wallet/issues/176),
   [#179](https://github.com/LeakIX/zcash-web-wallet/pull/179))
-  - Add mobile Chrome device profile (Pixel 5)
-  - Run E2E tests on desktop and mobile Chrome in CI
+  - Add mobile device profiles (Pixel 5, iPhone 12)
+  - Run E2E tests on desktop, mobile Chrome, and mobile Safari in CI
 
 ## 0.2.0 - 20260101
 
