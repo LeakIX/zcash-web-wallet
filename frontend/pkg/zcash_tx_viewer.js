@@ -956,6 +956,40 @@ export function render_balance_card(balance_zatoshis, wallet_alias) {
 }
 
 /**
+ * Generate HTML for a broadcast result alert.
+ *
+ * Creates a Bootstrap alert for displaying broadcast results.
+ *
+ * # Arguments
+ *
+ * * `message` - The message to display
+ * * `alert_type` - Bootstrap alert type ("success", "danger", "warning", "info")
+ *
+ * # Returns
+ *
+ * HTML string for the alert.
+ * @param {string} message
+ * @param {string} alert_type
+ * @returns {string}
+ */
+export function render_broadcast_result(message, alert_type) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(message, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(alert_type, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.render_broadcast_result(ptr0, len0, ptr1, len1);
+        deferred3_0 = ret[0];
+        deferred3_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
  * Generate HTML for an empty state message.
  *
  * Creates a centered message for empty lists.
@@ -1168,6 +1202,40 @@ export function render_scanner_balance_card(balance_zatoshis, pool_balances_json
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
         wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * Generate HTML for the send UTXOs table.
+ *
+ * Creates a table displaying available transparent UTXOs for sending.
+ *
+ * # Arguments
+ *
+ * * `utxos_json` - JSON array of StoredNote objects (filtered to transparent)
+ * * `network` - Network name ("mainnet" or "testnet") for explorer links
+ *
+ * # Returns
+ *
+ * HTML string for the UTXOs table.
+ * @param {string} utxos_json
+ * @param {string} network
+ * @returns {string}
+ */
+export function render_send_utxos_table(utxos_json, network) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(utxos_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(network, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.render_send_utxos_table(ptr0, len0, ptr1, len1);
+        deferred3_0 = ret[0];
+        deferred3_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
     }
 }
 

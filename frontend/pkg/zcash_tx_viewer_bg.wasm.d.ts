@@ -26,6 +26,7 @@ export const mark_notes_spent: (a: number, b: number, c: number, d: number, e: n
 export const mark_transparent_spent: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number];
 export const parse_viewing_key: (a: number, b: number) => [number, number];
 export const render_balance_card: (a: bigint, b: number, c: number) => [number, number];
+export const render_broadcast_result: (a: number, b: number, c: number, d: number) => [number, number];
 export const render_empty_state: (a: number, b: number, c: number, d: number) => [number, number];
 export const render_ledger_table: (a: number, b: number, c: number, d: number) => [number, number];
 export const render_note_item: (a: number, b: number) => [number, number];
@@ -33,6 +34,7 @@ export const render_notes_table: (a: number, b: number) => [number, number];
 export const render_orchard_actions: (a: number, b: number) => [number, number];
 export const render_sapling_outputs: (a: number, b: number) => [number, number];
 export const render_scanner_balance_card: (a: bigint, b: number, c: number) => [number, number];
+export const render_send_utxos_table: (a: number, b: number, c: number, d: number) => [number, number];
 export const render_simple_transaction_list: (a: number, b: number, c: number, d: number) => [number, number];
 export const render_success_alert: (a: number, b: number, c: number, d: number) => [number, number];
 export const render_transaction_item: (a: number, b: number) => [number, number];

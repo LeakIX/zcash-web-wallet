@@ -379,6 +379,22 @@ export function parse_viewing_key(key: string): string;
 export function render_balance_card(balance_zatoshis: bigint, wallet_alias?: string | null): string;
 
 /**
+ * Generate HTML for a broadcast result alert.
+ *
+ * Creates a Bootstrap alert for displaying broadcast results.
+ *
+ * # Arguments
+ *
+ * * `message` - The message to display
+ * * `alert_type` - Bootstrap alert type ("success", "danger", "warning", "info")
+ *
+ * # Returns
+ *
+ * HTML string for the alert.
+ */
+export function render_broadcast_result(message: string, alert_type: string): string;
+
+/**
  * Generate HTML for an empty state message.
  *
  * Creates a centered message for empty lists.
@@ -481,6 +497,22 @@ export function render_sapling_outputs(outputs_json: string): string;
  * HTML string for the balance card with pool breakdown.
  */
 export function render_scanner_balance_card(balance_zatoshis: bigint, pool_balances_json: string): string;
+
+/**
+ * Generate HTML for the send UTXOs table.
+ *
+ * Creates a table displaying available transparent UTXOs for sending.
+ *
+ * # Arguments
+ *
+ * * `utxos_json` - JSON array of StoredNote objects (filtered to transparent)
+ * * `network` - Network name ("mainnet" or "testnet") for explorer links
+ *
+ * # Returns
+ *
+ * HTML string for the UTXOs table.
+ */
+export function render_send_utxos_table(utxos_json: string, network: string): string;
 
 /**
  * Generate HTML for the simple view transaction list.
@@ -746,6 +778,7 @@ export interface InitOutput {
   readonly mark_transparent_spent: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number];
   readonly parse_viewing_key: (a: number, b: number) => [number, number];
   readonly render_balance_card: (a: bigint, b: number, c: number) => [number, number];
+  readonly render_broadcast_result: (a: number, b: number, c: number, d: number) => [number, number];
   readonly render_empty_state: (a: number, b: number, c: number, d: number) => [number, number];
   readonly render_ledger_table: (a: number, b: number, c: number, d: number) => [number, number];
   readonly render_note_item: (a: number, b: number) => [number, number];
@@ -753,6 +786,7 @@ export interface InitOutput {
   readonly render_orchard_actions: (a: number, b: number) => [number, number];
   readonly render_sapling_outputs: (a: number, b: number) => [number, number];
   readonly render_scanner_balance_card: (a: bigint, b: number, c: number) => [number, number];
+  readonly render_send_utxos_table: (a: number, b: number, c: number, d: number) => [number, number];
   readonly render_simple_transaction_list: (a: number, b: number, c: number, d: number) => [number, number];
   readonly render_success_alert: (a: number, b: number, c: number, d: number) => [number, number];
   readonly render_transaction_item: (a: number, b: number) => [number, number];
