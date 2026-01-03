@@ -395,6 +395,40 @@ export function render_balance_card(balance_zatoshis: bigint, wallet_alias?: str
 export function render_broadcast_result(message: string, alert_type: string): string;
 
 /**
+ * Generate HTML for the derived addresses table.
+ *
+ * Creates a table displaying derived transparent and unified addresses with
+ * duplicate detection and copy buttons.
+ *
+ * # Arguments
+ *
+ * * `addresses_json` - JSON array of DerivedAddress objects
+ * * `network` - Network name ("mainnet" or "testnet") for explorer links
+ *
+ * # Returns
+ *
+ * HTML string for the addresses table including duplicate warning if applicable.
+ */
+export function render_derived_addresses_table(addresses_json: string, network: string): string;
+
+/**
+ * Generate HTML for a dismissible info/success alert.
+ *
+ * Creates a Bootstrap dismissible alert for address operations.
+ *
+ * # Arguments
+ *
+ * * `message` - The message to display
+ * * `alert_type` - Bootstrap alert type ("success", "info", "warning", "danger")
+ * * `icon_class` - Bootstrap icon class (e.g., "bi-check-circle", "bi-info-circle")
+ *
+ * # Returns
+ *
+ * HTML string for the dismissible alert.
+ */
+export function render_dismissible_alert(message: string, alert_type: string, icon_class: string): string;
+
+/**
  * Generate HTML for an empty state message.
  *
  * Creates a centered message for empty lists.
@@ -481,6 +515,21 @@ export function render_orchard_actions(actions_json: string): string;
  * HTML string for the Sapling outputs section.
  */
 export function render_sapling_outputs(outputs_json: string): string;
+
+/**
+ * Generate HTML for the saved wallets list.
+ *
+ * Creates a list group displaying saved wallets with view/delete buttons.
+ *
+ * # Arguments
+ *
+ * * `wallets_json` - JSON array of SavedWallet objects
+ *
+ * # Returns
+ *
+ * HTML string for the wallets list.
+ */
+export function render_saved_wallets_list(wallets_json: string): string;
 
 /**
  * Generate HTML for the scanner balance card with pool breakdown.
@@ -779,12 +828,15 @@ export interface InitOutput {
   readonly parse_viewing_key: (a: number, b: number) => [number, number];
   readonly render_balance_card: (a: bigint, b: number, c: number) => [number, number];
   readonly render_broadcast_result: (a: number, b: number, c: number, d: number) => [number, number];
+  readonly render_derived_addresses_table: (a: number, b: number, c: number, d: number) => [number, number];
+  readonly render_dismissible_alert: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
   readonly render_empty_state: (a: number, b: number, c: number, d: number) => [number, number];
   readonly render_ledger_table: (a: number, b: number, c: number, d: number) => [number, number];
   readonly render_note_item: (a: number, b: number) => [number, number];
   readonly render_notes_table: (a: number, b: number) => [number, number];
   readonly render_orchard_actions: (a: number, b: number) => [number, number];
   readonly render_sapling_outputs: (a: number, b: number) => [number, number];
+  readonly render_saved_wallets_list: (a: number, b: number) => [number, number];
   readonly render_scanner_balance_card: (a: bigint, b: number, c: number) => [number, number];
   readonly render_send_utxos_table: (a: number, b: number, c: number, d: number) => [number, number];
   readonly render_simple_transaction_list: (a: number, b: number, c: number, d: number) => [number, number];
