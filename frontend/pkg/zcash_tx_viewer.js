@@ -1084,6 +1084,62 @@ export function render_notes_table(notes_json) {
 }
 
 /**
+ * Generate HTML for Orchard actions in the decrypt viewer.
+ *
+ * # Arguments
+ *
+ * * `actions_json` - JSON array of DecryptedOrchardAction objects
+ *
+ * # Returns
+ *
+ * HTML string for the Orchard actions section.
+ * @param {string} actions_json
+ * @returns {string}
+ */
+export function render_orchard_actions(actions_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passStringToWasm0(actions_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.render_orchard_actions(ptr0, len0);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * Generate HTML for Sapling outputs in the decrypt viewer.
+ *
+ * # Arguments
+ *
+ * * `outputs_json` - JSON array of DecryptedSaplingOutput objects
+ *
+ * # Returns
+ *
+ * HTML string for the Sapling outputs section.
+ * @param {string} outputs_json
+ * @returns {string}
+ */
+export function render_sapling_outputs(outputs_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passStringToWasm0(outputs_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.render_sapling_outputs(ptr0, len0);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
  * Generate HTML for the scanner balance card with pool breakdown.
  *
  * Creates a card showing total balance and breakdown by pool (Orchard, Sapling, Transparent).
@@ -1206,6 +1262,62 @@ export function render_transaction_item(entry_json) {
         const ptr0 = passStringToWasm0(entry_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.render_transaction_item(ptr0, len0);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * Generate HTML for transparent inputs in the decrypt viewer.
+ *
+ * # Arguments
+ *
+ * * `inputs_json` - JSON array of TransparentInput objects
+ *
+ * # Returns
+ *
+ * HTML string for the inputs section, or empty string if no inputs.
+ * @param {string} inputs_json
+ * @returns {string}
+ */
+export function render_transparent_inputs(inputs_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passStringToWasm0(inputs_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.render_transparent_inputs(ptr0, len0);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * Generate HTML for transparent outputs in the decrypt viewer.
+ *
+ * # Arguments
+ *
+ * * `outputs_json` - JSON array of TransparentOutput objects
+ *
+ * # Returns
+ *
+ * HTML string for the outputs section, or empty string if no outputs.
+ * @param {string} outputs_json
+ * @returns {string}
+ */
+export function render_transparent_outputs(outputs_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passStringToWasm0(outputs_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.render_transparent_outputs(ptr0, len0);
         deferred2_0 = ret[0];
         deferred2_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);

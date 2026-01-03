@@ -441,6 +441,32 @@ export function render_note_item(note_json: string): string;
 export function render_notes_table(notes_json: string): string;
 
 /**
+ * Generate HTML for Orchard actions in the decrypt viewer.
+ *
+ * # Arguments
+ *
+ * * `actions_json` - JSON array of DecryptedOrchardAction objects
+ *
+ * # Returns
+ *
+ * HTML string for the Orchard actions section.
+ */
+export function render_orchard_actions(actions_json: string): string;
+
+/**
+ * Generate HTML for Sapling outputs in the decrypt viewer.
+ *
+ * # Arguments
+ *
+ * * `outputs_json` - JSON array of DecryptedSaplingOutput objects
+ *
+ * # Returns
+ *
+ * HTML string for the Sapling outputs section.
+ */
+export function render_sapling_outputs(outputs_json: string): string;
+
+/**
  * Generate HTML for the scanner balance card with pool breakdown.
  *
  * Creates a card showing total balance and breakdown by pool (Orchard, Sapling, Transparent).
@@ -503,6 +529,32 @@ export function render_success_alert(txid: string, network: string): string;
  * HTML string for the transaction list item.
  */
 export function render_transaction_item(entry_json: string): string;
+
+/**
+ * Generate HTML for transparent inputs in the decrypt viewer.
+ *
+ * # Arguments
+ *
+ * * `inputs_json` - JSON array of TransparentInput objects
+ *
+ * # Returns
+ *
+ * HTML string for the inputs section, or empty string if no inputs.
+ */
+export function render_transparent_inputs(inputs_json: string): string;
+
+/**
+ * Generate HTML for transparent outputs in the decrypt viewer.
+ *
+ * # Arguments
+ *
+ * * `outputs_json` - JSON array of TransparentOutput objects
+ *
+ * # Returns
+ *
+ * HTML string for the outputs section, or empty string if no outputs.
+ */
+export function render_transparent_outputs(outputs_json: string): string;
 
 /**
  * Restore a wallet from an existing seed phrase
@@ -698,10 +750,14 @@ export interface InitOutput {
   readonly render_ledger_table: (a: number, b: number, c: number, d: number) => [number, number];
   readonly render_note_item: (a: number, b: number) => [number, number];
   readonly render_notes_table: (a: number, b: number) => [number, number];
+  readonly render_orchard_actions: (a: number, b: number) => [number, number];
+  readonly render_sapling_outputs: (a: number, b: number) => [number, number];
   readonly render_scanner_balance_card: (a: bigint, b: number, c: number) => [number, number];
   readonly render_simple_transaction_list: (a: number, b: number, c: number, d: number) => [number, number];
   readonly render_success_alert: (a: number, b: number, c: number, d: number) => [number, number];
   readonly render_transaction_item: (a: number, b: number) => [number, number];
+  readonly render_transparent_inputs: (a: number, b: number) => [number, number];
+  readonly render_transparent_outputs: (a: number, b: number) => [number, number];
   readonly restore_wallet: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
   readonly scan_transaction: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number];
   readonly sign_transparent_transaction: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: bigint, k: number) => [number, number];
