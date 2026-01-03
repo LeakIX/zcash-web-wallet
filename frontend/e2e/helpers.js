@@ -100,6 +100,21 @@ export async function restoreTestWallet(page, walletName = "Restored Wallet") {
   await expect(page.locator("#walletSuccess")).toBeVisible({ timeout: 15000 });
 }
 
+export async function restoreWalletWithSeed(
+  page,
+  seedPhrase,
+  walletName = "Custom Wallet"
+) {
+  await navigateToTab(page, "wallet");
+  await page.fill("#restoreAlias", walletName);
+  await page.selectOption("#restoreNetwork", "testnet");
+  await page.fill("#restoreAccount", "0");
+  await page.fill("#restoreSeed", seedPhrase);
+  await page.click("#restoreWalletBtn");
+
+  await expect(page.locator("#walletSuccess")).toBeVisible({ timeout: 15000 });
+}
+
 export async function saveWalletToBrowser(page) {
   await page.click("#saveWalletBtn");
   await page.waitForTimeout(500);

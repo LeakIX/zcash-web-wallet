@@ -27,6 +27,9 @@ and this project adheres to
 - Add repository field to Cargo.toml
   ([#182](https://github.com/LeakIX/zcash-web-wallet/issues/182),
   [#185](https://github.com/LeakIX/zcash-web-wallet/pull/185))
+- Add transaction scanning E2E tests with real transaction fixtures
+  ([#178](https://github.com/LeakIX/zcash-web-wallet/issues/178),
+  [#186](https://github.com/LeakIX/zcash-web-wallet/pull/186))
 
 ### Changed
 

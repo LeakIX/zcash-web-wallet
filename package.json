@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Zcash Shielded Transaction Viewer",
   "private": true,
+  "type": "module",
   "author": "Danny Willems <be.danny.willems@gmail.com>",
   "license": "MIT",
   "devDependencies": {
