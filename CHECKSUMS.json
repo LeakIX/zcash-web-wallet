@@ -1,10 +1,10 @@
 {
-  "version": "cb2ddc488aa1ac9a179f32421d7f33cb0c3c017f",
-  "timestamp": "2026-01-03T13:00:47.477Z",
+  "version": "39b2e08e44c38d9043c2e44d342d69c4da93a671",
+  "timestamp": "2026-01-03T13:10:53.176Z",
   "files": {
     "js/app.js": "64fc865eb0fd2ce589abdc176a0af3fff5653ee8a6e619e75702b162469ead8c",
     "js/wasm.js": "d59292cdb2e7884ec9d8e05d1accc9f5ec81871119128580039fb6d014f7b8fd",
-    "js/decrypt-viewer.js": "d5c00aadd02ef1d902fc67f8a9e5fc181a914e82e1f3f21aaf9a7dc893204b8d",
+    "js/decrypt-viewer.js": "22937ceb279aa835696b07c13b805ada5521bf5d4c99a1148deadbdd0cbb7df9",
     "js/scanner.js": "11d9f5205547a6d57c518641b0f446d07045be11552c4f4a25e9a0ec9ff03454",
     "js/wallet.js": "439abd0f642e804d87d0dff4b704fb8fc501139ea6e66564a3e53e2dd07e788a",
     "js/addresses.js": "177865ed6df69c1bf687b9e1e633b5e18a6c2e6fcff41e06bb42a25b9b70aecf",
@@ -20,7 +20,7 @@
     "js/storage/ledger.js": "9c27db3ca5d269b6de53fdf5382ae36b4c12ccd9e87c7556387be6d28295f55c",
     "css/style.css": "e96edf0153354cbfd64beeb8912f1b8204784db62153949e67f3f80d54f0a5f6",
     "index.html": "7adb0e5a0e04b9579eed30295f21b085e343c71cf88ea16f8b40f949b467e740",
-    "pkg/zcash_tx_viewer.js": "a8272b1282115a72119eaf108cc55d67d47e473055a769816022bcef426b3472",
-    "pkg/zcash_tx_viewer_bg.wasm": "d31f5c7e6ac6dc93269592d63484d00af5544b2d8197bdc40057bbdd68d8e538"
+    "pkg/zcash_tx_viewer.js": "21abe4aab383bb84e98af61334a6c9b010f8130b29f0ce22a0ce173c15883a09",
+    "pkg/zcash_tx_viewer_bg.wasm": "833fe08e438d4af20a32a8b8b053bbb689770f5cb0d67f724529062b0eac3cc7"
   }
 }

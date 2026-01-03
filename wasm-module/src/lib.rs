@@ -3048,6 +3048,276 @@ pub fn render_success_alert(txid: &str, network: &str) -> String {
         .render()
 }
 
+/// Generate HTML for transparent inputs in the decrypt viewer.
+///
+/// # Arguments
+///
+/// * `inputs_json` - JSON array of TransparentInput objects
+///
+/// # Returns
+///
+/// HTML string for the inputs section, or empty string if no inputs.
+#[wasm_bindgen]
+pub fn render_transparent_inputs(inputs_json: &str) -> String {
+    let inputs: Vec<TransparentInput> = match serde_json::from_str(inputs_json) {
+        Ok(i) => i,
+        Err(_) => return String::new(),
+    };
+
+    if inputs.is_empty() {
+        return String::new();
+    }
+
+    let mut container = Element::new("div").child("p", |p| {
+        p.class("fw-semibold")
+            .class("mb-2")
+            .text(format!("Inputs ({})", inputs.len()))
+    });
+
+    for input in &inputs {
+        container = container.child("div", |card| {
+            card.class("card")
+                .class("output-card")
+                .class("transparent")
+                .class("mb-2")
+                .child("div", |body| {
+                    body.class("card-body")
+                        .class("py-2")
+                        .class("px-3")
+                        .child("small", |s| {
+                            s.class("text-muted")
+                                .text(format!("Input #{}", input.index))
+                        })
+                        .child("div", |d| {
+                            d.class("mono")
+                                .class("small")
+                                .class("text-truncate")
+                                .text(format!(
+                                    "Prev: {}:{}",
+                                    input.prevout_txid, input.prevout_index
+                                ))
+                        })
+                })
+        });
+    }
+
+    container.render()
+}
+
+/// Generate HTML for transparent outputs in the decrypt viewer.
+///
+/// # Arguments
+///
+/// * `outputs_json` - JSON array of TransparentOutput objects
+///
+/// # Returns
+///
+/// HTML string for the outputs section, or empty string if no outputs.
+#[wasm_bindgen]
+pub fn render_transparent_outputs(outputs_json: &str) -> String {
+    let outputs: Vec<TransparentOutput> = match serde_json::from_str(outputs_json) {
+        Ok(o) => o,
+        Err(_) => return String::new(),
+    };
+
+    if outputs.is_empty() {
+        return String::new();
+    }
+
+    let mut container = Element::new("div").child("p", |p| {
+        p.class("fw-semibold")
+            .class("mb-2")
+            .text(format!("Outputs ({})", outputs.len()))
+    });
+
+    for output in &outputs {
+        let value_zec = format_zec(output.value);
+
+        container = container.child("div", |card| {
+            card.class("card")
+                .class("output-card")
+                .class("transparent")
+                .class("mb-2")
+                .child("div", |body| {
+                    let mut b = body
+                        .class("card-body")
+                        .class("py-2")
+                        .class("px-3")
+                        .child("small", |s| {
+                            s.class("text-muted")
+                                .text(format!("Output #{}", output.index))
+                        })
+                        .child("div", |d| {
+                            d.child("strong", |s| s.text(&value_zec)).text(" ZEC")
+                        });
+
+                    if let Some(ref addr) = output.address {
+                        b = b.child("div", |d| {
+                            d.class("mono")
+                                .class("small")
+                                .class("text-truncate")
+                                .text(addr)
+                        });
+                    }
+
+                    b
+                })
+        });
+    }
+
+    container.render()
+}
+
+/// Generate HTML for Sapling outputs in the decrypt viewer.
+///
+/// # Arguments
+///
+/// * `outputs_json` - JSON array of DecryptedSaplingOutput objects
+///
+/// # Returns
+///
+/// HTML string for the Sapling outputs section.
+#[wasm_bindgen]
+pub fn render_sapling_outputs(outputs_json: &str) -> String {
+    let outputs: Vec<DecryptedSaplingOutput> = match serde_json::from_str(outputs_json) {
+        Ok(o) => o,
+        Err(_) => return String::new(),
+    };
+
+    let mut container = Element::new("div");
+
+    for output in &outputs {
+        container = container.child("div", |card| {
+            card.class("card")
+                .class("output-card")
+                .class("sapling")
+                .class("mb-2")
+                .child("div", |body| {
+                    let mut b =
+                        body.class("card-body")
+                            .class("py-2")
+                            .class("px-3")
+                            .child("small", |s| {
+                                s.class("text-muted")
+                                    .text(format!("Output #{}", output.index))
+                            });
+
+                    if output.value > 0 {
+                        let value_zec = format_zec(output.value);
+                        b = b.child("div", |d| {
+                            d.child("strong", |s| s.text(&value_zec)).text(" ZEC")
+                        });
+                    }
+
+                    if !output.memo.is_empty() && output.memo != "(encrypted)" {
+                        b = b.child("div", |d| {
+                            d.class("small").text("Memo: ").text(&output.memo)
+                        });
+                    }
+
+                    b = b.child("div", |d| {
+                        d.class("mono")
+                            .class("small")
+                            .class("text-truncate")
+                            .class("text-muted")
+                            .text("Commitment: ")
+                            .text(&output.note_commitment)
+                    });
+
+                    if let Some(ref nullifier) = output.nullifier {
+                        b = b.child("div", |d| {
+                            d.class("mono")
+                                .class("small")
+                                .class("text-truncate")
+                                .class("text-muted")
+                                .text("Nullifier: ")
+                                .text(nullifier)
+                        });
+                    }
+
+                    b
+                })
+        });
+    }
+
+    container.render()
+}
+
+/// Generate HTML for Orchard actions in the decrypt viewer.
+///
+/// # Arguments
+///
+/// * `actions_json` - JSON array of DecryptedOrchardAction objects
+///
+/// # Returns
+///
+/// HTML string for the Orchard actions section.
+#[wasm_bindgen]
+pub fn render_orchard_actions(actions_json: &str) -> String {
+    let actions: Vec<DecryptedOrchardAction> = match serde_json::from_str(actions_json) {
+        Ok(a) => a,
+        Err(_) => return String::new(),
+    };
+
+    let mut container = Element::new("div");
+
+    for action in &actions {
+        container = container.child("div", |card| {
+            card.class("card")
+                .class("output-card")
+                .class("orchard")
+                .class("mb-2")
+                .child("div", |body| {
+                    let mut b =
+                        body.class("card-body")
+                            .class("py-2")
+                            .class("px-3")
+                            .child("small", |s| {
+                                s.class("text-muted")
+                                    .text(format!("Action #{}", action.index))
+                            });
+
+                    if action.value > 0 {
+                        let value_zec = format_zec(action.value);
+                        b = b.child("div", |d| {
+                            d.child("strong", |s| s.text(&value_zec)).text(" ZEC")
+                        });
+                    }
+
+                    if !action.memo.is_empty() && action.memo != "(encrypted)" {
+                        b = b.child("div", |d| {
+                            d.class("small").text("Memo: ").text(&action.memo)
+                        });
+                    }
+
+                    b = b.child("div", |d| {
+                        d.class("mono")
+                            .class("small")
+                            .class("text-truncate")
+                            .class("text-muted")
+                            .text("Commitment: ")
+                            .text(&action.note_commitment)
+                    });
+
+                    if let Some(ref nullifier) = action.nullifier {
+                        b = b.child("div", |d| {
+                            d.class("mono")
+                                .class("small")
+                                .class("text-truncate")
+                                .class("text-muted")
+                                .text("Nullifier: ")
+                                .text(nullifier)
+                        });
+                    }
+
+                    b
+                })
+        });
+    }
+
+    container.render()
+}
+
 /// Generate HTML for a note/UTXO list item.
 ///
 /// Creates a list group item showing note details.

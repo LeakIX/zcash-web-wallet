@@ -2,7 +2,7 @@
 
 import { getWasm } from "./wasm.js";
 import { fetchRawTransaction } from "./rpc.js";
-import { formatZatoshi, escapeHtml, debounce } from "./utils.js";
+import { debounce } from "./utils.js";
 import {
   setSelectedEndpoint,
   addEndpoint,
@@ -172,6 +172,7 @@ export async function decryptTransaction() {
 
 // Display decryption results
 export function displayResults(tx) {
+  const wasmModule = getWasm();
   const placeholderDiv = document.getElementById("placeholder");
   const resultsDiv = document.getElementById("results");
 
@@ -189,53 +190,16 @@ export function displayResults(tx) {
   if (tx.transparent_inputs.length > 0 || tx.transparent_outputs.length > 0) {
     if (transparentSection) transparentSection.classList.remove("d-none");
 
-    // Inputs
     if (transparentInputs) {
-      if (tx.transparent_inputs.length > 0) {
-        transparentInputs.innerHTML = `
-          <p class="fw-semibold mb-2">Inputs (${tx.transparent_inputs.length})</p>
-          ${tx.transparent_inputs
-            .map(
-              (input) => `
-            <div class="card output-card transparent mb-2">
-              <div class="card-body py-2 px-3">
-                <small class="text-muted">Input #${input.index}</small>
-                <div class="mono small text-truncate">
-                  Prev: ${input.prevout_txid}:${input.prevout_index}
-                </div>
-              </div>
-            </div>
-          `
-            )
-            .join("")}
-        `;
-      } else {
-        transparentInputs.innerHTML = "";
-      }
+      transparentInputs.innerHTML = wasmModule.render_transparent_inputs(
+        JSON.stringify(tx.transparent_inputs)
+      );
     }
 
-    // Outputs
     if (transparentOutputs) {
-      if (tx.transparent_outputs.length > 0) {
-        transparentOutputs.innerHTML = `
-          <p class="fw-semibold mb-2">Outputs (${tx.transparent_outputs.length})</p>
-          ${tx.transparent_outputs
-            .map(
-              (output) => `
-            <div class="card output-card transparent mb-2">
-              <div class="card-body py-2 px-3">
-                <small class="text-muted">Output #${output.index}</small>
-                <div><strong>${formatZatoshi(output.value)}</strong> ZEC</div>
-                ${output.address ? `<div class="mono small text-truncate">${output.address}</div>` : ""}
-              </div>
-            </div>
-          `
-            )
-            .join("")}
-        `;
-      } else {
-        transparentOutputs.innerHTML = "";
-      }
+      transparentOutputs.innerHTML = wasmModule.render_transparent_outputs(
+        JSON.stringify(tx.transparent_outputs)
+      );
     }
   } else {
     if (transparentSection) transparentSection.classList.add("d-none");
@@ -248,23 +212,9 @@ export function displayResults(tx) {
   if (tx.sapling_outputs.length > 0) {
     if (saplingSection) saplingSection.classList.remove("d-none");
     if (saplingOutputs) {
-      saplingOutputs.innerHTML = tx.sapling_outputs
-        .map(
-          (output) => `
-          <div class="card output-card sapling mb-2">
-            <div class="card-body py-2 px-3">
-              <small class="text-muted">Output #${output.index}</small>
-              ${output.value > 0 ? `<div><strong>${formatZatoshi(output.value)}</strong> ZEC</div>` : ""}
-              ${output.memo && output.memo !== "(encrypted)" ? `<div class="small">Memo: ${escapeHtml(output.memo)}</div>` : ""}
-              <div class="mono small text-truncate text-muted">
-                Commitment: ${output.note_commitment}
-              </div>
-              ${output.nullifier ? `<div class="mono small text-truncate text-muted">Nullifier: ${output.nullifier}</div>` : ""}
-            </div>
-          </div>
-        `
-        )
-        .join("");
+      saplingOutputs.innerHTML = wasmModule.render_sapling_outputs(
+        JSON.stringify(tx.sapling_outputs)
+      );
     }
   } else {
     if (saplingSection) saplingSection.classList.add("d-none");
@@ -277,23 +227,9 @@ export function displayResults(tx) {
   if (tx.orchard_actions.length > 0) {
     if (orchardSection) orchardSection.classList.remove("d-none");
     if (orchardActions) {
-      orchardActions.innerHTML = tx.orchard_actions
-        .map(
-          (action) => `
-          <div class="card output-card orchard mb-2">
-            <div class="card-body py-2 px-3">
-              <small class="text-muted">Action #${action.index}</small>
-              ${action.value > 0 ? `<div><strong>${formatZatoshi(action.value)}</strong> ZEC</div>` : ""}
-              ${action.memo && action.memo !== "(encrypted)" ? `<div class="small">Memo: ${escapeHtml(action.memo)}</div>` : ""}
-              <div class="mono small text-truncate text-muted">
-                Commitment: ${action.note_commitment}
-              </div>
-              ${action.nullifier ? `<div class="mono small text-truncate text-muted">Nullifier: ${action.nullifier}</div>` : ""}
-            </div>
-          </div>
-        `
-        )
-        .join("");
+      orchardActions.innerHTML = wasmModule.render_orchard_actions(
+        JSON.stringify(tx.orchard_actions)
+      );
     }
   } else {
     if (orchardSection) orchardSection.classList.add("d-none");
