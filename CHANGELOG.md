@@ -25,6 +25,12 @@ and this project adheres to
   ([#181](https://github.com/LeakIX/zcash-web-wallet/issues/181),
   [#183](https://github.com/LeakIX/zcash-web-wallet/pull/183))
 
+### Changed
+
+- Optimize CI: E2E tests use committed artifacts instead of rebuilding
+  ([#180](https://github.com/LeakIX/zcash-web-wallet/issues/180),
+  [#184](https://github.com/LeakIX/zcash-web-wallet/pull/184))
+
 ## 0.2.0 - 20260101
 
 ### Added
