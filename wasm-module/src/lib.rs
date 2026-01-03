@@ -2499,6 +2499,390 @@ pub fn render_balance_card(balance_zatoshis: u64, wallet_alias: Option<String>) 
     .render()
 }
 
+/// Generate HTML for the scanner balance card with pool breakdown.
+///
+/// Creates a card showing total balance and breakdown by pool (Orchard, Sapling, Transparent).
+///
+/// # Arguments
+///
+/// * `balance_zatoshis` - The total balance in zatoshis
+/// * `pool_balances_json` - JSON object with pool balances: {"orchard": u64, "sapling": u64, "transparent": u64}
+///
+/// # Returns
+///
+/// HTML string for the balance card with pool breakdown.
+#[wasm_bindgen]
+pub fn render_scanner_balance_card(balance_zatoshis: u64, pool_balances_json: &str) -> String {
+    use std::collections::HashMap;
+
+    let balance_zec = format_zec(balance_zatoshis);
+    let pool_balances: HashMap<String, u64> =
+        serde_json::from_str(pool_balances_json).unwrap_or_default();
+
+    // Sort pools for consistent ordering
+    let mut pools: Vec<_> = pool_balances.iter().collect();
+    pools.sort_by_key(|(k, _)| match k.as_str() {
+        "orchard" => 0,
+        "sapling" => 1,
+        "transparent" => 2,
+        _ => 3,
+    });
+
+    Element::new("div")
+        .class("card")
+        .class("shadow-sm")
+        .child("div", |header| {
+            header.class("card-header").child("h5", |h5| {
+                h5.class("mb-0")
+                    .class("fw-semibold")
+                    .child("i", |i| i.class("bi").class("bi-cash-coin").class("me-1"))
+                    .text(" Total Balance")
+            })
+        })
+        .child("div", |body| {
+            let mut body = body.class("card-body");
+
+            // Total balance
+            body = body.child("p", |p| {
+                p.class("display-5")
+                    .class("mb-3")
+                    .class("text-success")
+                    .class("fw-bold")
+                    .text(&balance_zec)
+                    .text(" ZEC")
+            });
+
+            // Pool breakdown header
+            body = body.child("h6", |h6| h6.class("text-muted").text("By Pool"));
+
+            // Pool breakdown items
+            if pools.is_empty() {
+                body = body.child("p", |p| p.class("text-muted").text("No notes tracked yet."));
+            } else {
+                for (pool, amount) in &pools {
+                    let pool_label = pool
+                        .chars()
+                        .next()
+                        .map(|c| c.to_uppercase().to_string())
+                        .unwrap_or_default()
+                        + &pool[1..];
+                    let pool_class = match pool.as_str() {
+                        "orchard" => "text-success",
+                        "sapling" => "text-primary",
+                        "transparent" => "text-warning",
+                        _ => "text-secondary",
+                    };
+                    let amount_zec = format_zec(**amount);
+
+                    body = body.child("p", |p| {
+                        p.class("mb-1")
+                            .child("span", |span| span.class(pool_class).text(&pool_label))
+                            .text(": ")
+                            .child("strong", |strong| strong.text(&amount_zec).text(" ZEC"))
+                    });
+                }
+            }
+
+            body
+        })
+        .render()
+}
+
+/// Generate HTML for the notes table in the scanner view.
+///
+/// Creates a responsive table showing all tracked notes with pool, value, memo, and status.
+///
+/// # Arguments
+///
+/// * `notes_json` - JSON array of StoredNote objects
+///
+/// # Returns
+///
+/// HTML string for the complete notes table.
+#[wasm_bindgen]
+pub fn render_notes_table(notes_json: &str) -> String {
+    let mut notes: Vec<StoredNote> = match serde_json::from_str(notes_json) {
+        Ok(n) => n,
+        Err(_) => return String::new(),
+    };
+
+    // Sort: unspent first, then by value descending
+    notes.sort_by(
+        |a, b| match (a.spent_txid.is_some(), b.spent_txid.is_some()) {
+            (true, false) => std::cmp::Ordering::Greater,
+            (false, true) => std::cmp::Ordering::Less,
+            _ => b.value.cmp(&a.value),
+        },
+    );
+
+    let notes_count = notes.len();
+
+    // Build table body rows
+    let mut tbody = Element::new("tbody");
+    for note in &notes {
+        let pool_class = match note.pool {
+            Pool::Orchard => "text-success",
+            Pool::Sapling => "text-primary",
+            Pool::Transparent => "text-warning",
+        };
+        let is_spent = note.spent_txid.is_some();
+        let row_class = if is_spent {
+            "text-muted text-decoration-line-through"
+        } else {
+            ""
+        };
+        let value_text = if note.value > 0 {
+            format!("{} ZEC", format_zec(note.value))
+        } else {
+            "-".to_string()
+        };
+        let memo_text = note
+            .memo
+            .as_ref()
+            .map(|m| {
+                if m.len() > 30 {
+                    format!("{}...", &m[..30])
+                } else {
+                    m.clone()
+                }
+            })
+            .unwrap_or_else(|| "-".to_string());
+
+        tbody = tbody.child("tr", |tr| {
+            let mut tr = tr;
+            if !row_class.is_empty() {
+                tr = tr.class(row_class);
+            }
+            tr.child("td", |td| {
+                td.child("span", |span| {
+                    span.class(pool_class).text(note.pool.as_str())
+                })
+            })
+            .child("td", |td| td.text(&value_text))
+            .child("td", |td| td.text(&memo_text))
+            .child("td", |td| {
+                if is_spent {
+                    td.child("span", |span| {
+                        span.class("badge").class("bg-secondary").text("Spent")
+                    })
+                } else {
+                    td.child("span", |span| {
+                        span.class("badge").class("bg-success").text("Unspent")
+                    })
+                }
+            })
+        });
+    }
+
+    // Build complete table
+    Element::new("div")
+        .class("table-responsive")
+        .child("table", |table| {
+            table
+                .class("table")
+                .class("table-sm")
+                .child("thead", |thead| {
+                    thead.child("tr", |tr| {
+                        tr.child("th", |th| th.text("Pool"))
+                            .child("th", |th| th.text("Value"))
+                            .child("th", |th| th.text("Memo"))
+                            .child("th", |th| th.text("Status"))
+                    })
+                })
+                .raw(tbody.render())
+        })
+        .child("p", |p| {
+            p.class("small")
+                .class("text-muted")
+                .text(format!("Total notes: {}", notes_count))
+        })
+        .render()
+}
+
+/// Generate HTML for the ledger/transaction history table in the scanner view.
+///
+/// Creates a responsive table showing transaction history with date, txid, amounts, and pool.
+///
+/// # Arguments
+///
+/// * `entries_json` - JSON array of LedgerEntry objects
+/// * `network` - Network name ("mainnet" or "testnet") for explorer links
+///
+/// # Returns
+///
+/// HTML string for the complete ledger table.
+#[wasm_bindgen]
+pub fn render_ledger_table(entries_json: &str, network: &str) -> String {
+    let mut entries: Vec<LedgerEntry> = match serde_json::from_str(entries_json) {
+        Ok(e) => e,
+        Err(_) => return String::new(),
+    };
+
+    // Sort by date descending
+    entries.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+
+    let entries_count = entries.len();
+    let explorer_base = if network == "mainnet" {
+        "https://zcashexplorer.app"
+    } else {
+        "https://testnet.zcashexplorer.app"
+    };
+
+    // Build table body rows
+    let mut tbody = Element::new("tbody");
+    for entry in &entries {
+        let date = entry.created_at.split('T').next().unwrap_or("-");
+
+        let row_class = if entry.net_change > 0 {
+            "table-success"
+        } else if entry.net_change < 0 {
+            "table-danger"
+        } else {
+            ""
+        };
+
+        let net_formatted = if entry.net_change >= 0 {
+            format!("+{}", format_zec(entry.net_change as u64))
+        } else {
+            format!("-{}", format_zec((-entry.net_change) as u64))
+        };
+
+        let received_text = if entry.value_received > 0 {
+            format!("+{}", format_zec(entry.value_received))
+        } else {
+            "-".to_string()
+        };
+
+        let spent_text = if entry.value_spent > 0 {
+            format!("-{}", format_zec(entry.value_spent))
+        } else {
+            "-".to_string()
+        };
+
+        let pool_badge_class = match entry.primary_pool.as_str() {
+            "orchard" => "bg-info",
+            "sapling" => "bg-primary",
+            "transparent" => "bg-warning text-dark",
+            "mixed" => "bg-secondary",
+            _ => "bg-secondary",
+        };
+        let pool_name = entry
+            .primary_pool
+            .chars()
+            .next()
+            .map(|c| c.to_uppercase().to_string() + &entry.primary_pool[1..])
+            .unwrap_or_else(|| "Unknown".to_string());
+
+        let memo_text = entry
+            .memos
+            .first()
+            .map(|m: &String| {
+                if m.len() > 20 {
+                    format!("{}...", &m[..20])
+                } else {
+                    m.clone()
+                }
+            })
+            .unwrap_or_else(|| "-".to_string());
+
+        let txid_short = if entry.txid.len() > 12 {
+            format!(
+                "{}...{}",
+                &entry.txid[..8],
+                &entry.txid[entry.txid.len() - 4..]
+            )
+        } else {
+            entry.txid.clone()
+        };
+        let txid_url = format!("{}/transactions/{}", explorer_base, entry.txid);
+
+        tbody = tbody.child("tr", |tr| {
+            let mut tr = tr;
+            if !row_class.is_empty() {
+                tr = tr.class(row_class);
+            }
+            tr.child("td", |td| td.class("small").text(date))
+                .child("td", |td| {
+                    td.class("small").child("a", |a| {
+                        a.attr("href", &txid_url)
+                            .attr("target", "_blank")
+                            .attr("rel", "noopener noreferrer")
+                            .class("mono")
+                            .attr("title", &entry.txid)
+                            .text(&txid_short)
+                    })
+                })
+                .child("td", |td| {
+                    td.class("text-end")
+                        .class("text-success")
+                        .text(&received_text)
+                })
+                .child("td", |td| {
+                    td.class("text-end").class("text-danger").text(&spent_text)
+                })
+                .child("td", |td| {
+                    td.class("text-end").class("fw-bold").text(&net_formatted)
+                })
+                .child("td", |td| {
+                    td.child("span", |span| {
+                        span.class("badge").class(pool_badge_class).text(&pool_name)
+                    })
+                })
+                .child("td", |td| td.class("small").text(&memo_text))
+        });
+    }
+
+    // Build complete structure
+    Element::new("div")
+        .child("div", |header| {
+            header
+                .class("d-flex")
+                .class("justify-content-between")
+                .class("align-items-center")
+                .class("mb-3")
+                .child("h6", |h6| {
+                    h6.class("mb-0")
+                        .child("i", |i| {
+                            i.class("bi").class("bi-journal-text").class("me-1")
+                        })
+                        .text(" Transaction History")
+                })
+                .child("button", |btn| {
+                    btn.class("btn")
+                        .class("btn-sm")
+                        .class("btn-outline-secondary")
+                        .attr("onclick", "downloadLedgerCsv()")
+                        .child("i", |i| i.class("bi").class("bi-download").class("me-1"))
+                        .text(" Export CSV")
+                })
+        })
+        .child("div", |wrapper| {
+            wrapper.class("table-responsive").child("table", |table| {
+                table
+                    .class("table")
+                    .class("table-sm")
+                    .child("thead", |thead| {
+                        thead.child("tr", |tr| {
+                            tr.child("th", |th| th.text("Date"))
+                                .child("th", |th| th.text("TxID"))
+                                .child("th", |th| th.class("text-end").text("Received"))
+                                .child("th", |th| th.class("text-end").text("Spent"))
+                                .child("th", |th| th.class("text-end").text("Net"))
+                                .child("th", |th| th.text("Pool"))
+                                .child("th", |th| th.text("Memo"))
+                        })
+                    })
+                    .raw(tbody.render())
+            })
+        })
+        .child("p", |p| {
+            p.class("small")
+                .class("text-muted")
+                .text(format!("Total transactions: {}", entries_count))
+        })
+        .render()
+}
+
 /// Generate HTML for a note/UTXO list item.
 ///
 /// Creates a list group item showing note details.

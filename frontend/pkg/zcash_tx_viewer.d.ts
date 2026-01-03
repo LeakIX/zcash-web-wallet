@@ -395,6 +395,22 @@ export function render_balance_card(balance_zatoshis: bigint, wallet_alias?: str
 export function render_empty_state(message: string, icon_class: string): string;
 
 /**
+ * Generate HTML for the ledger/transaction history table in the scanner view.
+ *
+ * Creates a responsive table showing transaction history with date, txid, amounts, and pool.
+ *
+ * # Arguments
+ *
+ * * `entries_json` - JSON array of LedgerEntry objects
+ * * `network` - Network name ("mainnet" or "testnet") for explorer links
+ *
+ * # Returns
+ *
+ * HTML string for the complete ledger table.
+ */
+export function render_ledger_table(entries_json: string, network: string): string;
+
+/**
  * Generate HTML for a note/UTXO list item.
  *
  * Creates a list group item showing note details.
@@ -408,6 +424,37 @@ export function render_empty_state(message: string, icon_class: string): string;
  * HTML string for the note list item.
  */
 export function render_note_item(note_json: string): string;
+
+/**
+ * Generate HTML for the notes table in the scanner view.
+ *
+ * Creates a responsive table showing all tracked notes with pool, value, memo, and status.
+ *
+ * # Arguments
+ *
+ * * `notes_json` - JSON array of StoredNote objects
+ *
+ * # Returns
+ *
+ * HTML string for the complete notes table.
+ */
+export function render_notes_table(notes_json: string): string;
+
+/**
+ * Generate HTML for the scanner balance card with pool breakdown.
+ *
+ * Creates a card showing total balance and breakdown by pool (Orchard, Sapling, Transparent).
+ *
+ * # Arguments
+ *
+ * * `balance_zatoshis` - The total balance in zatoshis
+ * * `pool_balances_json` - JSON object with pool balances: {"orchard": u64, "sapling": u64, "transparent": u64}
+ *
+ * # Returns
+ *
+ * HTML string for the balance card with pool breakdown.
+ */
+export function render_scanner_balance_card(balance_zatoshis: bigint, pool_balances_json: string): string;
 
 /**
  * Generate HTML for a transaction list item.
@@ -615,7 +662,10 @@ export interface InitOutput {
   readonly parse_viewing_key: (a: number, b: number) => [number, number];
   readonly render_balance_card: (a: bigint, b: number, c: number) => [number, number];
   readonly render_empty_state: (a: number, b: number, c: number, d: number) => [number, number];
+  readonly render_ledger_table: (a: number, b: number, c: number, d: number) => [number, number];
   readonly render_note_item: (a: number, b: number) => [number, number];
+  readonly render_notes_table: (a: number, b: number) => [number, number];
+  readonly render_scanner_balance_card: (a: bigint, b: number, c: number) => [number, number];
   readonly render_transaction_item: (a: number, b: number) => [number, number];
   readonly restore_wallet: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
   readonly scan_transaction: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number];

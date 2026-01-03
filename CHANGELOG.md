@@ -36,6 +36,12 @@ and this project adheres to
 - Optimize CI: E2E tests use committed artifacts instead of rebuilding
   ([#180](https://github.com/LeakIX/zcash-web-wallet/issues/180),
   [#184](https://github.com/LeakIX/zcash-web-wallet/pull/184))
+- Migrate scanner.js DOM manipulation to Rust/WASM
+  ([#163](https://github.com/LeakIX/zcash-web-wallet/issues/163),
+  [#187](https://github.com/LeakIX/zcash-web-wallet/pull/187))
+  - Add render_scanner_balance_card(), render_notes_table(),
+    render_ledger_table() WASM functions
+  - Reduce scanner.js by ~180 lines
 
 ## 0.2.0 - 20260101
 

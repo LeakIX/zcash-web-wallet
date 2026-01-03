@@ -27,7 +27,10 @@ export const mark_transparent_spent: (a: number, b: number, c: number, d: number
 export const parse_viewing_key: (a: number, b: number) => [number, number];
 export const render_balance_card: (a: bigint, b: number, c: number) => [number, number];
 export const render_empty_state: (a: number, b: number, c: number, d: number) => [number, number];
+export const render_ledger_table: (a: number, b: number, c: number, d: number) => [number, number];
 export const render_note_item: (a: number, b: number) => [number, number];
+export const render_notes_table: (a: number, b: number) => [number, number];
+export const render_scanner_balance_card: (a: bigint, b: number, c: number) => [number, number];
 export const render_transaction_item: (a: number, b: number) => [number, number];
 export const restore_wallet: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
 export const scan_transaction: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number];
