@@ -363,6 +363,68 @@ export function mark_transparent_spent(notes_json: string, spends_json: string, 
 export function parse_viewing_key(key: string): string;
 
 /**
+ * Generate HTML for a balance display card.
+ *
+ * Creates a Bootstrap card component showing the wallet balance.
+ *
+ * # Arguments
+ *
+ * * `balance_zatoshis` - The balance in zatoshis (1 ZEC = 100,000,000 zatoshis)
+ * * `wallet_alias` - Optional wallet name to display
+ *
+ * # Returns
+ *
+ * HTML string for the balance card.
+ */
+export function render_balance_card(balance_zatoshis: bigint, wallet_alias?: string | null): string;
+
+/**
+ * Generate HTML for an empty state message.
+ *
+ * Creates a centered message for empty lists.
+ *
+ * # Arguments
+ *
+ * * `message` - The message to display
+ * * `icon_class` - Bootstrap icon class (e.g., "bi-inbox")
+ *
+ * # Returns
+ *
+ * HTML string for the empty state.
+ */
+export function render_empty_state(message: string, icon_class: string): string;
+
+/**
+ * Generate HTML for a note/UTXO list item.
+ *
+ * Creates a list group item showing note details.
+ *
+ * # Arguments
+ *
+ * * `note_json` - JSON of StoredNote
+ *
+ * # Returns
+ *
+ * HTML string for the note list item.
+ */
+export function render_note_item(note_json: string): string;
+
+/**
+ * Generate HTML for a transaction list item.
+ *
+ * Creates a list group item showing transaction details from a ledger entry.
+ *
+ * # Arguments
+ *
+ * * `entry_json` - JSON of LedgerEntry
+ *
+ * # Returns
+ *
+ * HTML string for the transaction list item.
+ */
+export function render_transaction_item(entry_json: string): string;
+
+/**
  * Restore a wallet from an existing seed phrase
  */
 export function restore_wallet(seed_phrase: string, network_str: string, account_index: number, address_index: number): string;
@@ -551,6 +613,10 @@ export interface InitOutput {
   readonly mark_notes_spent: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number];
   readonly mark_transparent_spent: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number];
   readonly parse_viewing_key: (a: number, b: number) => [number, number];
+  readonly render_balance_card: (a: bigint, b: number, c: number) => [number, number];
+  readonly render_empty_state: (a: number, b: number, c: number, d: number) => [number, number];
+  readonly render_note_item: (a: number, b: number) => [number, number];
+  readonly render_transaction_item: (a: number, b: number) => [number, number];
   readonly restore_wallet: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
   readonly scan_transaction: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number];
   readonly sign_transparent_transaction: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: bigint, k: number) => [number, number];

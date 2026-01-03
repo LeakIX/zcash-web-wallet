@@ -924,6 +924,132 @@ export function parse_viewing_key(key) {
 }
 
 /**
+ * Generate HTML for a balance display card.
+ *
+ * Creates a Bootstrap card component showing the wallet balance.
+ *
+ * # Arguments
+ *
+ * * `balance_zatoshis` - The balance in zatoshis (1 ZEC = 100,000,000 zatoshis)
+ * * `wallet_alias` - Optional wallet name to display
+ *
+ * # Returns
+ *
+ * HTML string for the balance card.
+ * @param {bigint} balance_zatoshis
+ * @param {string | null} [wallet_alias]
+ * @returns {string}
+ */
+export function render_balance_card(balance_zatoshis, wallet_alias) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        var ptr0 = isLikeNone(wallet_alias) ? 0 : passStringToWasm0(wallet_alias, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len0 = WASM_VECTOR_LEN;
+        const ret = wasm.render_balance_card(balance_zatoshis, ptr0, len0);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * Generate HTML for an empty state message.
+ *
+ * Creates a centered message for empty lists.
+ *
+ * # Arguments
+ *
+ * * `message` - The message to display
+ * * `icon_class` - Bootstrap icon class (e.g., "bi-inbox")
+ *
+ * # Returns
+ *
+ * HTML string for the empty state.
+ * @param {string} message
+ * @param {string} icon_class
+ * @returns {string}
+ */
+export function render_empty_state(message, icon_class) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(message, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(icon_class, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.render_empty_state(ptr0, len0, ptr1, len1);
+        deferred3_0 = ret[0];
+        deferred3_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
+ * Generate HTML for a note/UTXO list item.
+ *
+ * Creates a list group item showing note details.
+ *
+ * # Arguments
+ *
+ * * `note_json` - JSON of StoredNote
+ *
+ * # Returns
+ *
+ * HTML string for the note list item.
+ * @param {string} note_json
+ * @returns {string}
+ */
+export function render_note_item(note_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passStringToWasm0(note_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.render_note_item(ptr0, len0);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * Generate HTML for a transaction list item.
+ *
+ * Creates a list group item showing transaction details from a ledger entry.
+ *
+ * # Arguments
+ *
+ * * `entry_json` - JSON of LedgerEntry
+ *
+ * # Returns
+ *
+ * HTML string for the transaction list item.
+ * @param {string} entry_json
+ * @returns {string}
+ */
+export function render_transaction_item(entry_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passStringToWasm0(entry_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.render_transaction_item(ptr0, len0);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
  * Restore a wallet from an existing seed phrase
  * @param {string} seed_phrase
  * @param {string} network_str
