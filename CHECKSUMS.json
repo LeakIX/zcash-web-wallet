@@ -1,6 +1,6 @@
 {
-  "version": "83c417d29fdc8ca509e8c94246e5fe3ec894d72b",
-  "timestamp": "2026-01-01T16:20:26.513Z",
+  "version": "83e704d6d0ed34c24b954162c68b07e732905186",
+  "timestamp": "2026-01-03T10:26:21.050Z",
   "files": {
     "js/app.js": "9504744a580c123a5f068ef546b3e3c6b8cd7ab41b16716187a4867eceac5524",
     "js/wasm.js": "d59292cdb2e7884ec9d8e05d1accc9f5ec81871119128580039fb6d014f7b8fd",
@@ -20,7 +20,7 @@
     "js/storage/ledger.js": "9c27db3ca5d269b6de53fdf5382ae36b4c12ccd9e87c7556387be6d28295f55c",
     "css/style.css": "e96edf0153354cbfd64beeb8912f1b8204784db62153949e67f3f80d54f0a5f6",
     "index.html": "7adb0e5a0e04b9579eed30295f21b085e343c71cf88ea16f8b40f949b467e740",
-    "pkg/zcash_tx_viewer.js": "9305ddcfc88bd43fa38a38b38319b15f2984ce4f5bf93017d08ae4d633353557",
-    "pkg/zcash_tx_viewer_bg.wasm": "9282204c32b4b5e9478815ef21eff333df457034996fd0bab31ed185cc78bba6"
+    "pkg/zcash_tx_viewer.js": "291a5b336124635a3ed78972e9aed1e6a6a9a5376c80f3a130d47b55deb02615",
+    "pkg/zcash_tx_viewer_bg.wasm": "7eab402ce2035ed37ea89ff824cb8cfc1d53019cce2cfb18bd761dae511aca61"
   }
 }
