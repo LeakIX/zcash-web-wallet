@@ -18,6 +18,7 @@
 
 use wasm_bindgen::prelude::*;
 
+use html_builder::{Element, html};
 use rand::RngCore;
 use zcash_address::unified::{self, Container, Encoding};
 use zcash_primitives::transaction::Transaction;
@@ -2450,6 +2451,236 @@ pub fn export_ledger_csv(ledger_json: &str, wallet_id: &str) -> String {
     }
 }
 
+// ============================================================================
+// HTML Generation (using html-builder library)
+// ============================================================================
+
+/// Format a zatoshi value as ZEC with 8 decimal places.
+fn format_zec(zatoshis: u64) -> String {
+    let zec = zatoshis as f64 / 100_000_000.0;
+    format!("{:.8}", zec)
+}
+
+/// Generate HTML for a balance display card.
+///
+/// Creates a Bootstrap card component showing the wallet balance.
+///
+/// # Arguments
+///
+/// * `balance_zatoshis` - The balance in zatoshis (1 ZEC = 100,000,000 zatoshis)
+/// * `wallet_alias` - Optional wallet name to display
+///
+/// # Returns
+///
+/// HTML string for the balance card.
+#[wasm_bindgen]
+pub fn render_balance_card(balance_zatoshis: u64, wallet_alias: Option<String>) -> String {
+    let balance_zec = format_zec(balance_zatoshis);
+    let title = wallet_alias.unwrap_or_else(|| "Balance".to_string());
+
+    html! {
+        div.class("card").class("mb-3") {
+            div.class("card-body").class("text-center") {
+                h6.class("card-subtitle").class("mb-2").class("text-muted") {
+                    #title
+                }
+                h2.class("card-title").class("mb-0") {
+                    span.class("text-primary") {
+                        #balance_zec
+                    }
+                    " "
+                    small.class("text-muted") {
+                        "ZEC"
+                    }
+                }
+            }
+        }
+    }
+    .render()
+}
+
+/// Generate HTML for a note/UTXO list item.
+///
+/// Creates a list group item showing note details.
+///
+/// # Arguments
+///
+/// * `note_json` - JSON of StoredNote
+///
+/// # Returns
+///
+/// HTML string for the note list item.
+#[wasm_bindgen]
+pub fn render_note_item(note_json: &str) -> String {
+    let note: StoredNote = match serde_json::from_str(note_json) {
+        Ok(n) => n,
+        Err(_) => return String::new(),
+    };
+
+    let value_zec = format_zec(note.value);
+    let pool_badge_class = match note.pool {
+        Pool::Orchard => "bg-success",
+        Pool::Sapling => "bg-primary",
+        Pool::Transparent => "bg-warning text-dark",
+    };
+    let pool_name = note.pool.as_str();
+    let is_spent = note.spent_txid.is_some();
+    let status_class = if is_spent { "text-muted" } else { "" };
+    let txid_short = if note.txid.len() > 16 {
+        format!("{}...", &note.txid[..16])
+    } else {
+        note.txid.clone()
+    };
+
+    // Build HTML using the builder API
+    let mut item = Element::new("div")
+        .class("list-group-item")
+        .class("d-flex")
+        .class("justify-content-between")
+        .class("align-items-center");
+
+    if !status_class.is_empty() {
+        item = item.class(status_class);
+    }
+
+    item.child("div", |div| {
+        div.child("span", |span| {
+            span.class("badge")
+                .class(pool_badge_class)
+                .class("me-2")
+                .text(pool_name)
+        })
+        .child("small", |small| small.class("text-muted").text(&txid_short))
+    })
+    .child("div", |div| {
+        let mut d = div.child("span", |span| {
+            span.class("fw-bold").text(&value_zec).text(" ZEC")
+        });
+
+        if is_spent {
+            d = d.child("span", |span| {
+                span.class("badge")
+                    .class("bg-secondary")
+                    .class("ms-2")
+                    .text("Spent")
+            });
+        }
+
+        d
+    })
+    .render()
+}
+
+/// Generate HTML for a transaction list item.
+///
+/// Creates a list group item showing transaction details from a ledger entry.
+///
+/// # Arguments
+///
+/// * `entry_json` - JSON of LedgerEntry
+///
+/// # Returns
+///
+/// HTML string for the transaction list item.
+#[wasm_bindgen]
+pub fn render_transaction_item(entry_json: &str) -> String {
+    let entry: LedgerEntry = match serde_json::from_str(entry_json) {
+        Ok(e) => e,
+        Err(_) => return String::new(),
+    };
+
+    let is_incoming = entry.net_change >= 0;
+    let amount = if is_incoming {
+        entry.net_change as u64
+    } else {
+        (-entry.net_change) as u64
+    };
+    let amount_zec = format_zec(amount);
+    let sign = if is_incoming { "+" } else { "-" };
+    let amount_class = if is_incoming {
+        "text-success"
+    } else {
+        "text-danger"
+    };
+    let icon_class = if is_incoming {
+        "bi-arrow-down-circle"
+    } else {
+        "bi-arrow-up-circle"
+    };
+    let txid_short = if entry.txid.len() > 16 {
+        format!("{}...", &entry.txid[..16])
+    } else {
+        entry.txid.clone()
+    };
+    let date = entry
+        .created_at
+        .split('T')
+        .next()
+        .unwrap_or(&entry.created_at);
+    let direction_text = if is_incoming { "Received" } else { "Sent" };
+
+    // Build HTML using the builder API
+    Element::new("div")
+        .class("list-group-item")
+        .class("d-flex")
+        .class("justify-content-between")
+        .class("align-items-center")
+        .child("div", |div| {
+            div.class("d-flex")
+                .class("align-items-center")
+                .child("i", |i| {
+                    i.class("bi")
+                        .class(icon_class)
+                        .class("fs-4")
+                        .class("me-3")
+                        .class(amount_class)
+                })
+                .child("div", |inner| {
+                    inner
+                        .child("div", |d| d.class("fw-bold").text(direction_text))
+                        .child("small", |s| s.class("text-muted").text(&txid_short))
+                })
+        })
+        .child("div", |div| {
+            div.class("text-end")
+                .child("div", |d| {
+                    d.class("fw-bold")
+                        .class(amount_class)
+                        .text(sign)
+                        .text(&amount_zec)
+                        .text(" ZEC")
+                })
+                .child("small", |s| s.class("text-muted").text(date))
+        })
+        .render()
+}
+
+/// Generate HTML for an empty state message.
+///
+/// Creates a centered message for empty lists.
+///
+/// # Arguments
+///
+/// * `message` - The message to display
+/// * `icon_class` - Bootstrap icon class (e.g., "bi-inbox")
+///
+/// # Returns
+///
+/// HTML string for the empty state.
+#[wasm_bindgen]
+pub fn render_empty_state(message: &str, icon_class: &str) -> String {
+    // Build HTML using the builder API
+    Element::new("div")
+        .class("text-center")
+        .class("py-5")
+        .class("text-muted")
+        .child("i", |i| {
+            i.class("bi").class(icon_class).class("fs-1").class("mb-3")
+        })
+        .child("p", |p| p.class("mb-0").text(message))
+        .render()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2459,5 +2690,28 @@ mod tests {
         let result = parse_viewing_key("invalid_key");
         let info: ViewingKeyInfo = serde_json::from_str(&result).unwrap();
         assert!(!info.valid);
+    }
+
+    #[test]
+    fn test_render_balance_card() {
+        let html = render_balance_card(123456789, Some("Test Wallet".to_string()));
+        assert!(html.contains("1.23456789"));
+        assert!(html.contains("Test Wallet"));
+        assert!(html.contains("ZEC"));
+        assert!(html.contains("card"));
+    }
+
+    #[test]
+    fn test_render_empty_state() {
+        let html = render_empty_state("No transactions yet", "bi-inbox");
+        assert!(html.contains("No transactions yet"));
+        assert!(html.contains("bi-inbox"));
+    }
+
+    #[test]
+    fn test_format_zec() {
+        assert_eq!(format_zec(100_000_000), "1.00000000");
+        assert_eq!(format_zec(123456789), "1.23456789");
+        assert_eq!(format_zec(0), "0.00000000");
     }
 }

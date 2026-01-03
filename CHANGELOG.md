@@ -11,6 +11,11 @@ and this project adheres to
 ### Added
 
 - Add Playwright E2E tests for frontend with CI integration on ubuntu and macOS
+- Integrate external html-builder library for type-safe HTML generation in Rust
+  ([#162](https://github.com/LeakIX/zcash-web-wallet/pull/162))
+  - Add render functions for balance cards, notes, transactions, and empty
+    states
+  - First step toward moving DOM manipulation from JavaScript to Rust/WASM
 
 ## 0.2.0 - 20260101
 

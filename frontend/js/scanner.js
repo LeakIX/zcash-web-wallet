@@ -357,12 +357,10 @@ export function updateNotesDisplay() {
   const notes = getAllNotes();
 
   if (notes.length === 0) {
-    notesDiv.innerHTML = `
-      <div class="text-muted text-center py-4">
-        <i class="bi bi-inbox fs-1"></i>
-        <p>No notes tracked yet. Scan a transaction to get started.</p>
-      </div>
-    `;
+    notesDiv.innerHTML = getWasm().render_empty_state(
+      "No notes tracked yet. Scan a transaction to get started.",
+      "bi-inbox"
+    );
     return;
   }
 
@@ -445,12 +443,10 @@ export function updateLedgerDisplay() {
   }
 
   if (entries.length === 0) {
-    ledgerDiv.innerHTML = `
-      <div class="text-muted text-center py-4">
-        <i class="bi bi-journal-text fs-1"></i>
-        <p>No transaction history yet. Scan transactions to build your ledger.</p>
-      </div>
-    `;
+    ledgerDiv.innerHTML = getWasm().render_empty_state(
+      "No transaction history yet. Scan transactions to build your ledger.",
+      "bi-journal-text"
+    );
     return;
   }
 

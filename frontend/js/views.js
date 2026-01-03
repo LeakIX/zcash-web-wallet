@@ -170,12 +170,10 @@ function updateSimpleTransactionList(walletId) {
   if (!listEl) return;
 
   if (!walletId) {
-    listEl.innerHTML = `
-      <div class="text-center text-body-secondary py-4">
-        <i class="bi bi-clock-history fs-1"></i>
-        <p class="mt-2 mb-0">No transactions yet</p>
-      </div>
-    `;
+    listEl.innerHTML = getWasm().render_empty_state(
+      "No transactions yet",
+      "bi-clock-history"
+    );
     return;
   }
 
@@ -189,12 +187,10 @@ function updateSimpleTransactionList(walletId) {
   );
 
   if (walletEntries.length === 0) {
-    listEl.innerHTML = `
-      <div class="text-center text-body-secondary py-4">
-        <i class="bi bi-clock-history fs-1"></i>
-        <p class="mt-2 mb-0">No transactions yet</p>
-      </div>
-    `;
+    listEl.innerHTML = getWasm().render_empty_state(
+      "No transactions yet",
+      "bi-clock-history"
+    );
     return;
   }
 

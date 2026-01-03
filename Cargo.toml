@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["core", "wasm-module", "cli", "html-builder"]
+members = ["core", "wasm-module", "cli"]
 
 [workspace.package]
 version = "0.1.0"
@@ -8,6 +8,12 @@ edition = "2024"
 license = "MIT"
 
 [workspace.dependencies]
+# HTML builder
+html-builder = { git = "https://github.com/LeakIX/html-builder.git", package = "html-builder", features = ["macros"] }
+html-bootstrap = { git = "https://github.com/LeakIX/html-builder.git", package = "html-bootstrap" }
+html-elements = { git = "https://github.com/LeakIX/html-builder.git", package = "html-elements" }
+
+
 # Zcash crates
 orchard = { version = "0.11", default-features = false }
 sapling-crypto = { version = "0.6", default-features = false }
