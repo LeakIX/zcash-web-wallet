@@ -24,6 +24,9 @@ and this project adheres to
 - Add MIT LICENSE file
   ([#181](https://github.com/LeakIX/zcash-web-wallet/issues/181),
   [#183](https://github.com/LeakIX/zcash-web-wallet/pull/183))
+- Add repository field to Cargo.toml
+  ([#182](https://github.com/LeakIX/zcash-web-wallet/issues/182),
+  [#185](https://github.com/LeakIX/zcash-web-wallet/pull/185))
 
 ### Changed
 
