@@ -5,7 +5,6 @@ import { loadWallets, getSelectedWallet } from "./storage/wallets.js";
 import { loadNotes, getAllNotes } from "./storage/notes.js";
 import { loadLedger } from "./storage/ledger.js";
 import { loadEndpoints } from "./storage/endpoints.js";
-import { renderTxidLink, getExplorerTxUrl } from "./utils.js";
 import { getWasm } from "./wasm.js";
 import { broadcastTransaction } from "./rpc.js";
 
@@ -194,46 +193,10 @@ function updateSimpleTransactionList(walletId) {
     return;
   }
 
-  const sortedEntries = walletEntries
-    .sort((a, b) => {
-      const dateA = new Date(a.timestamp || a.created_at || 0);
-      const dateB = new Date(b.timestamp || b.created_at || 0);
-      return dateB - dateA;
-    })
-    .slice(0, 10);
-
-  listEl.innerHTML = sortedEntries
-    .map((entry) => {
-      const isIncoming = entry.net_change > 0;
-      const icon = isIncoming ? "bi-arrow-down-left" : "bi-arrow-up-right";
-      const color = isIncoming ? "text-success" : "text-danger";
-      const sign = isIncoming ? "+" : "";
-      const zec = (entry.net_change || 0) / 100000000;
-      const dateSource = entry.timestamp || entry.created_at;
-      const dateStr = dateSource
-        ? new Date(dateSource).toLocaleString()
-        : "Unknown";
-      const txidLink = entry.txid
-        ? renderTxidLink(entry.txid, network, 6, 4)
-        : "";
-
-      return `
-        <div class="list-group-item d-flex justify-content-between align-items-center">
-          <div class="d-flex align-items-center">
-            <i class="bi ${icon} ${color} fs-4 me-3"></i>
-            <div>
-              <div class="fw-semibold">${isIncoming ? "Received" : "Sent"}</div>
-              <small class="text-body-secondary">${dateStr}</small>
-              ${txidLink ? `<div class="small">${txidLink}</div>` : ""}
-            </div>
-          </div>
-          <div class="text-end">
-            <div class="${color} fw-semibold">${sign}${zec.toFixed(8)} ZEC</div>
-          </div>
-        </div>
-      `;
-    })
-    .join("");
+  listEl.innerHTML = getWasm().render_simple_transaction_list(
+    JSON.stringify(walletEntries),
+    network
+  );
 }
 
 export function updateReceiveAddress(walletId) {
@@ -415,17 +378,7 @@ function showSimpleSendError(message) {
 }
 
 function showSimpleSendSuccess(txid, network) {
-  const explorerUrl = getExplorerTxUrl(txid, network);
-  const alertHtml = `
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-      <i class="bi bi-check-circle me-2"></i>
-      <strong>Transaction sent!</strong><br>
-      <a href="${explorerUrl}" target="_blank" rel="noopener noreferrer" class="alert-link">
-        View on explorer
-      </a>
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-  `;
+  const alertHtml = getWasm().render_success_alert(txid, network);
 
   // Insert alert at top of simple view
   const simpleView = document.getElementById("simpleView");

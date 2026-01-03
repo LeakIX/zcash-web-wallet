@@ -2883,6 +2883,171 @@ pub fn render_ledger_table(entries_json: &str, network: &str) -> String {
         .render()
 }
 
+/// Generate HTML for the simple view transaction list.
+///
+/// Creates a list of transaction items for the Simple view with icons, dates,
+/// explorer links, and amounts.
+///
+/// # Arguments
+///
+/// * `entries_json` - JSON array of LedgerEntry objects
+/// * `network` - Network name ("mainnet" or "testnet") for explorer links
+///
+/// # Returns
+///
+/// HTML string for the transaction list items.
+#[wasm_bindgen]
+pub fn render_simple_transaction_list(entries_json: &str, network: &str) -> String {
+    let mut entries: Vec<LedgerEntry> = match serde_json::from_str(entries_json) {
+        Ok(e) => e,
+        Err(_) => return String::new(),
+    };
+
+    // Sort by date descending and take top 10
+    entries.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+    let entries: Vec<_> = entries.into_iter().take(10).collect();
+
+    let explorer_base = if network == "mainnet" {
+        "https://zcashexplorer.app"
+    } else {
+        "https://testnet.zcashexplorer.app"
+    };
+
+    let mut container = Element::new("div");
+
+    for entry in &entries {
+        let is_incoming = entry.net_change > 0;
+        let icon_class = if is_incoming {
+            "bi-arrow-down-left"
+        } else {
+            "bi-arrow-up-right"
+        };
+        let color_class = if is_incoming {
+            "text-success"
+        } else {
+            "text-danger"
+        };
+        let direction_text = if is_incoming { "Received" } else { "Sent" };
+        let sign = if is_incoming { "+" } else { "" };
+
+        let amount = if entry.net_change >= 0 {
+            entry.net_change as u64
+        } else {
+            (-entry.net_change) as u64
+        };
+        let amount_zec = format_zec(amount);
+
+        let txid_short_start = &entry.txid[..core::cmp::min(6, entry.txid.len())];
+        let txid_short_end = if entry.txid.len() > 10 {
+            &entry.txid[entry.txid.len() - 4..]
+        } else {
+            ""
+        };
+        let txid_display = format!("{}...{}", txid_short_start, txid_short_end);
+        let explorer_url = format!("{}/transactions/{}", explorer_base, entry.txid);
+
+        container = container.child("div", |item| {
+            item.class("list-group-item")
+                .class("d-flex")
+                .class("justify-content-between")
+                .class("align-items-center")
+                .child("div", |left| {
+                    left.class("d-flex")
+                        .class("align-items-center")
+                        .child("i", |i| {
+                            i.class("bi")
+                                .class(icon_class)
+                                .class(color_class)
+                                .class("fs-4")
+                                .class("me-3")
+                        })
+                        .child("div", |info| {
+                            info.child("div", |d| d.class("fw-semibold").text(direction_text))
+                                .child("small", |s| {
+                                    s.class("text-body-secondary").text(&entry.created_at)
+                                })
+                                .child("div", |link_div| {
+                                    link_div.class("small").child("a", |a| {
+                                        a.attr("href", &explorer_url)
+                                            .attr("target", "_blank")
+                                            .attr("rel", "noopener noreferrer")
+                                            .class("text-decoration-none")
+                                            .child("code", |code| code.text(&txid_display))
+                                            .child("i", |i| {
+                                                i.class("bi")
+                                                    .class("bi-box-arrow-up-right")
+                                                    .class("ms-1")
+                                                    .class("small")
+                                            })
+                                    })
+                                })
+                        })
+                })
+                .child("div", |right| {
+                    right.class("text-end").child("div", |amount_div| {
+                        amount_div
+                            .class(color_class)
+                            .class("fw-semibold")
+                            .text(sign)
+                            .text(&amount_zec)
+                            .text(" ZEC")
+                    })
+                })
+        });
+    }
+
+    container.render()
+}
+
+/// Generate HTML for a success alert with explorer link.
+///
+/// Creates a dismissible Bootstrap alert for successful transactions.
+///
+/// # Arguments
+///
+/// * `txid` - The transaction ID
+/// * `network` - Network name ("mainnet" or "testnet") for explorer links
+///
+/// # Returns
+///
+/// HTML string for the success alert.
+#[wasm_bindgen]
+pub fn render_success_alert(txid: &str, network: &str) -> String {
+    let explorer_base = if network == "mainnet" {
+        "https://zcashexplorer.app"
+    } else {
+        "https://testnet.zcashexplorer.app"
+    };
+    let explorer_url = format!("{}/transactions/{}", explorer_base, txid);
+
+    Element::new("div")
+        .class("alert")
+        .class("alert-success")
+        .class("alert-dismissible")
+        .class("fade")
+        .class("show")
+        .attr("role", "alert")
+        .child("i", |i| {
+            i.class("bi").class("bi-check-circle").class("me-2")
+        })
+        .child("strong", |s| s.text("Transaction sent!"))
+        .child("br", |br| br)
+        .child("a", |a| {
+            a.attr("href", &explorer_url)
+                .attr("target", "_blank")
+                .attr("rel", "noopener noreferrer")
+                .class("alert-link")
+                .text("View on explorer")
+        })
+        .child("button", |btn| {
+            btn.attr("type", "button")
+                .class("btn-close")
+                .attr("data-bs-dismiss", "alert")
+                .attr("aria-label", "Close")
+        })
+        .render()
+}
+
 /// Generate HTML for a note/UTXO list item.
 ///
 /// Creates a list group item showing note details.
