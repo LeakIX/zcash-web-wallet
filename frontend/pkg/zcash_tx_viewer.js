@@ -990,6 +990,40 @@ export function render_empty_state(message, icon_class) {
 }
 
 /**
+ * Generate HTML for the ledger/transaction history table in the scanner view.
+ *
+ * Creates a responsive table showing transaction history with date, txid, amounts, and pool.
+ *
+ * # Arguments
+ *
+ * * `entries_json` - JSON array of LedgerEntry objects
+ * * `network` - Network name ("mainnet" or "testnet") for explorer links
+ *
+ * # Returns
+ *
+ * HTML string for the complete ledger table.
+ * @param {string} entries_json
+ * @param {string} network
+ * @returns {string}
+ */
+export function render_ledger_table(entries_json, network) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(entries_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(network, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.render_ledger_table(ptr0, len0, ptr1, len1);
+        deferred3_0 = ret[0];
+        deferred3_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
  * Generate HTML for a note/UTXO list item.
  *
  * Creates a list group item showing note details.
@@ -1011,6 +1045,68 @@ export function render_note_item(note_json) {
         const ptr0 = passStringToWasm0(note_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.render_note_item(ptr0, len0);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * Generate HTML for the notes table in the scanner view.
+ *
+ * Creates a responsive table showing all tracked notes with pool, value, memo, and status.
+ *
+ * # Arguments
+ *
+ * * `notes_json` - JSON array of StoredNote objects
+ *
+ * # Returns
+ *
+ * HTML string for the complete notes table.
+ * @param {string} notes_json
+ * @returns {string}
+ */
+export function render_notes_table(notes_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passStringToWasm0(notes_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.render_notes_table(ptr0, len0);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * Generate HTML for the scanner balance card with pool breakdown.
+ *
+ * Creates a card showing total balance and breakdown by pool (Orchard, Sapling, Transparent).
+ *
+ * # Arguments
+ *
+ * * `balance_zatoshis` - The total balance in zatoshis
+ * * `pool_balances_json` - JSON object with pool balances: {"orchard": u64, "sapling": u64, "transparent": u64}
+ *
+ * # Returns
+ *
+ * HTML string for the balance card with pool breakdown.
+ * @param {bigint} balance_zatoshis
+ * @param {string} pool_balances_json
+ * @returns {string}
+ */
+export function render_scanner_balance_card(balance_zatoshis, pool_balances_json) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passStringToWasm0(pool_balances_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.render_scanner_balance_card(balance_zatoshis, ptr0, len0);
         deferred2_0 = ret[0];
         deferred2_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
