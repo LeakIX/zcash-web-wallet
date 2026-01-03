@@ -58,6 +58,12 @@ and this project adheres to
   [#191](https://github.com/LeakIX/zcash-web-wallet/pull/191))
   - Add render_send_utxos_table(), render_broadcast_result() WASM functions
   - Reduce send.js by ~45 lines
+- Migrate addresses.js DOM manipulation to Rust/WASM
+  ([#163](https://github.com/LeakIX/zcash-web-wallet/issues/163),
+  [#192](https://github.com/LeakIX/zcash-web-wallet/pull/192))
+  - Add render_derived_addresses_table(), render_dismissible_alert() WASM
+    functions
+  - Reduce addresses.js by ~95 lines
 
 ## 0.2.0 - 20260101
 
