@@ -1,6 +1,6 @@
 {
-  "version": "4c47ccdeac3bfc21103f04a3837497b5fe5554f6",
-  "timestamp": "2026-01-03T15:26:21.189Z",
+  "version": "cd0d5889a65d3fa97e5433696684c5006e39f5e1",
+  "timestamp": "2026-01-03T15:34:25.888Z",
   "files": {
     "js/app.js": "64fc865eb0fd2ce589abdc176a0af3fff5653ee8a6e619e75702b162469ead8c",
     "js/wasm.js": "d59292cdb2e7884ec9d8e05d1accc9f5ec81871119128580039fb6d014f7b8fd",
@@ -11,7 +11,7 @@
     "js/send.js": "93d5922395e187bfd63e368c63a86ff49c1fc695c732e5db7e727c54b3c134a3",
     "js/views.js": "a1e863c2242762a2a5f2d5ddb87a7edc362531f63d7c4ab9a274ab5df57cf83d",
     "js/theme.js": "8b28e4862c889ae879580cf31305045f52911c9c6c14b1e01cc0e5e54c13a6e1",
-    "js/utils.js": "4dd8a353f5d9b99291792d39ed22da4a15458d0cc34945113269c3c6b55529e4",
+    "js/utils.js": "48bcf292164fa6c838c2d75c641716120bc1c708d05c5574def86d637c2a9dde",
     "js/rpc.js": "3570f6041338ce13af83c3a464883f4eaa2ba64cf39bc0ed5f648d154d1213fc",
     "js/constants.js": "5fedb576c5fc75aa09c13d43d9c99ddcd2bfcc7052587c9ad4bf01785d0cfee7",
     "js/storage/endpoints.js": "d96ee1d2bcaf255da9bce49fe179ca4b1c24920153ea20274d22dd7b82e2592e",
