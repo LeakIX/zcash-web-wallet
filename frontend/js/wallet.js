@@ -2,7 +2,6 @@
 
 import { TRANSPARENT_ADDRESS_COUNT } from "./constants.js";
 import { getWasm } from "./wasm.js";
-import { escapeHtml } from "./utils.js";
 import {
   loadWallets,
   addWallet,
@@ -301,50 +300,13 @@ function saveWalletToBrowser() {
 // Update saved wallets list
 export function updateSavedWalletsList() {
   const listDiv = document.getElementById("savedWalletsList");
-  if (!listDiv) return;
+  const wasmModule = getWasm();
+  if (!listDiv || !wasmModule) return;
 
   const wallets = loadWallets();
-
-  if (wallets.length === 0) {
-    listDiv.innerHTML = `
-      <div class="text-muted text-center py-3">
-        <i class="bi bi-wallet2 fs-3"></i>
-        <p class="mb-0 mt-2">No wallets saved yet.</p>
-      </div>
-    `;
-    return;
-  }
-
-  let html = '<div class="list-group">';
-
-  for (const wallet of wallets) {
-    const networkBadge =
-      wallet.network === "mainnet"
-        ? '<span class="badge bg-success">mainnet</span>'
-        : '<span class="badge bg-warning text-dark">testnet</span>';
-
-    html += `
-      <div class="list-group-item">
-        <div class="d-flex justify-content-between align-items-start">
-          <div>
-            <h6 class="mb-1">${escapeHtml(wallet.alias)} ${networkBadge}</h6>
-            <small class="text-muted mono">${wallet.unified_address ? wallet.unified_address.slice(0, 20) + "..." : "No address"}</small>
-          </div>
-          <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-secondary" onclick="viewWalletDetails('${wallet.id}')" title="View details">
-              <i class="bi bi-eye"></i>
-            </button>
-            <button class="btn btn-outline-danger" onclick="confirmDeleteWallet('${wallet.id}')" title="Delete">
-              <i class="bi bi-trash"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  html += "</div>";
-  listDiv.innerHTML = html;
+  listDiv.innerHTML = wasmModule.render_saved_wallets_list(
+    JSON.stringify(wallets)
+  );
 }
 
 function viewWalletDetails(walletId) {

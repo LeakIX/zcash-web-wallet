@@ -3900,6 +3900,113 @@ pub fn render_dismissible_alert(message: &str, alert_type: &str, icon_class: &st
         .render()
 }
 
+/// Saved wallet entry for wallet list.
+#[derive(serde::Deserialize)]
+struct SavedWallet {
+    id: String,
+    alias: String,
+    network: String,
+    unified_address: Option<String>,
+}
+
+/// Generate HTML for the saved wallets list.
+///
+/// Creates a list group displaying saved wallets with view/delete buttons.
+///
+/// # Arguments
+///
+/// * `wallets_json` - JSON array of SavedWallet objects
+///
+/// # Returns
+///
+/// HTML string for the wallets list.
+#[wasm_bindgen]
+pub fn render_saved_wallets_list(wallets_json: &str) -> String {
+    let wallets: Vec<SavedWallet> = match serde_json::from_str(wallets_json) {
+        Ok(w) => w,
+        Err(_) => return String::new(),
+    };
+
+    if wallets.is_empty() {
+        return Element::new("div")
+            .class("text-muted")
+            .class("text-center")
+            .class("py-3")
+            .child("i", |i| i.class("bi").class("bi-wallet2").class("fs-3"))
+            .child("p", |p| {
+                p.class("mb-0").class("mt-2").text("No wallets saved yet.")
+            })
+            .render();
+    }
+
+    let mut list_group = Element::new("div").class("list-group");
+
+    for wallet in &wallets {
+        let network_badge_class = if wallet.network == "mainnet" {
+            "bg-success"
+        } else {
+            "bg-warning text-dark"
+        };
+
+        let address_display = match &wallet.unified_address {
+            Some(addr) if addr.len() > 20 => format!("{}...", &addr[..20]),
+            Some(addr) => addr.clone(),
+            None => "No address".to_string(),
+        };
+
+        let view_onclick = format!("viewWalletDetails('{}')", wallet.id);
+        let delete_onclick = format!("confirmDeleteWallet('{}')", wallet.id);
+
+        list_group = list_group.child("div", |item| {
+            item.class("list-group-item").child("div", |wrapper| {
+                wrapper
+                    .class("d-flex")
+                    .class("justify-content-between")
+                    .class("align-items-start")
+                    .child("div", |info| {
+                        info.child("h6", |h6| {
+                            h6.class("mb-1")
+                                .text(&wallet.alias)
+                                .text(" ")
+                                .child("span", |badge| {
+                                    badge
+                                        .class("badge")
+                                        .class(network_badge_class)
+                                        .text(&wallet.network)
+                                })
+                        })
+                        .child("small", |small| {
+                            small
+                                .class("text-muted")
+                                .class("mono")
+                                .text(&address_display)
+                        })
+                    })
+                    .child("div", |btns| {
+                        btns.class("btn-group")
+                            .class("btn-group-sm")
+                            .child("button", |btn| {
+                                btn.class("btn")
+                                    .class("btn-outline-secondary")
+                                    .attr("onclick", &view_onclick)
+                                    .attr("title", "View details")
+                                    .child("i", |i| i.class("bi").class("bi-eye"))
+                            })
+                            .child("button", |btn| {
+                                btn.class("btn")
+                                    .class("btn-outline-danger")
+                                    .attr("onclick", &delete_onclick)
+                                    .attr("title", "Delete")
+                                    .child("i", |i| i.class("bi").class("bi-trash"))
+                            })
+                    })
+            })
+        });
+    }
+
+    list_group.render()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

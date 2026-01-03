@@ -64,6 +64,11 @@ and this project adheres to
   - Add render_derived_addresses_table(), render_dismissible_alert() WASM
     functions
   - Reduce addresses.js by ~95 lines
+- Migrate wallet.js DOM manipulation to Rust/WASM
+  ([#163](https://github.com/LeakIX/zcash-web-wallet/issues/163),
+  [#193](https://github.com/LeakIX/zcash-web-wallet/pull/193))
+  - Add render_saved_wallets_list() WASM function
+  - Reduce wallet.js by ~40 lines
 
 ## 0.2.0 - 20260101
 
