@@ -42,6 +42,11 @@ and this project adheres to
   - Add render_scanner_balance_card(), render_notes_table(),
     render_ledger_table() WASM functions
   - Reduce scanner.js by ~180 lines
+- Migrate views.js DOM manipulation to Rust/WASM
+  ([#163](https://github.com/LeakIX/zcash-web-wallet/issues/163),
+  [#188](https://github.com/LeakIX/zcash-web-wallet/pull/188))
+  - Add render_simple_transaction_list(), render_success_alert() WASM functions
+  - Reduce views.js by ~50 lines
 
 ## 0.2.0 - 20260101
 
