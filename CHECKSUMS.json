@@ -1,10 +1,10 @@
 {
-  "version": "03ff23f96ddab0e5feeb9e65c208858e8e4b0e44",
-  "timestamp": "2026-01-04T10:31:11.917Z",
+  "version": "dcb82ad869743d526eb7221e057efe70a9537487",
+  "timestamp": "2026-01-04T12:34:23.821Z",
   "files": {
     "js/app.js": "09840a58271520d81962bbb4f1ab1bbf242c522ffa5264ee5dc14428cca3349f",
     "js/wasm.js": "d59292cdb2e7884ec9d8e05d1accc9f5ec81871119128580039fb6d014f7b8fd",
-    "js/decrypt-viewer.js": "22937ceb279aa835696b07c13b805ada5521bf5d4c99a1148deadbdd0cbb7df9",
+    "js/decrypt-viewer.js": "d7905f4cc0964a9f4f55a8ab253e5358adae166c1bd52bfe06895d441f0e447e",
     "js/scanner.js": "11d9f5205547a6d57c518641b0f446d07045be11552c4f4a25e9a0ec9ff03454",
     "js/wallet.js": "7c32de76260e6bbc325541ea6adf2ed494709ff50cc7d8116afaaacf07462fa8",
     "js/addresses.js": "0d4bd8054f9170a5d9986db624de8348a15e0b35fb5be501f03309c6d36797b3",
@@ -23,6 +23,6 @@
     "css/style.css": "e96edf0153354cbfd64beeb8912f1b8204784db62153949e67f3f80d54f0a5f6",
     "index.html": "82435b0398c3edf3ebeae8b51e3e77c55a4d308cba4c9c08b2024a765c4add3d",
     "pkg/zcash_tx_viewer.js": "9cacaa6d7f19439f6f5b62d90b9cc370bf875414684d24ca307c5c4902541fd8",
-    "pkg/zcash_tx_viewer_bg.wasm": "28016ec897ec5921a1af399d84db5bdbc8de8472737248111802d71933084840"
+    "pkg/zcash_tx_viewer_bg.wasm": "0ee11b589eab32e61de4e50922b6a8ef8fdd2f387cfd9d355da0bbf92c39084c"
   }
 }
