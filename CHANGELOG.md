@@ -8,6 +8,14 @@ and this project adheres to
 
 ## CHANGELOG
 
+## [Unreleased]
+
+### Changed
+
+- Rename private `DerivedAddress` struct to `AddressTableRow` in wasm-module to
+  avoid confusion with `DerivedAddress` in core
+  ([#194](https://github.com/LeakIX/zcash-web-wallet/issues/194))
+
 ## [0.3.0]
 
 ### Added
