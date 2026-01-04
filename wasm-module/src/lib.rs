@@ -4007,6 +4007,177 @@ pub fn render_saved_wallets_list(wallets_json: &str) -> String {
     list_group.render()
 }
 
+/// Contact data structure for rendering
+#[derive(Debug, serde::Deserialize)]
+struct Contact {
+    id: String,
+    name: String,
+    address: String,
+    network: String,
+}
+
+/// Render a list of contacts as HTML.
+///
+/// # Arguments
+///
+/// * `contacts_json` - JSON string containing an array of contact objects
+///
+/// # Returns
+///
+/// HTML string containing a list-group of contacts with edit/delete buttons,
+/// or an empty state message if no contacts exist.
+#[wasm_bindgen]
+pub fn render_contacts_list(contacts_json: &str) -> String {
+    let contacts: Vec<Contact> = match serde_json::from_str(contacts_json) {
+        Ok(c) => c,
+        Err(_) => return render_empty_state("Failed to load contacts", "bi-exclamation-triangle"),
+    };
+
+    if contacts.is_empty() {
+        return render_empty_state(
+            "No contacts yet. Add your first contact above.",
+            "bi-person-plus",
+        );
+    }
+
+    let mut list_group = Element::new("div").class("list-group");
+
+    for contact in &contacts {
+        let network_badge_class = if contact.network == "mainnet" {
+            "bg-success"
+        } else {
+            "bg-info"
+        };
+
+        let address_short = if contact.address.len() > 24 {
+            format!(
+                "{}...{}",
+                &contact.address[..12],
+                &contact.address[contact.address.len() - 8..]
+            )
+        } else {
+            contact.address.clone()
+        };
+
+        let copy_onclick = format!(
+            "copyContactAddress('{}')",
+            contact.address.replace('\'', "\\'")
+        );
+        let edit_onclick = format!("editContact('{}')", contact.id);
+        let delete_onclick = format!("confirmDeleteContact('{}')", contact.id);
+
+        list_group = list_group.child("div", |item| {
+            item.class("list-group-item")
+                .class("contact-item")
+                .attr("data-name", contact.name.to_lowercase())
+                .attr("data-address", contact.address.to_lowercase())
+                .child("div", |wrapper| {
+                    wrapper
+                        .class("d-flex")
+                        .class("justify-content-between")
+                        .class("align-items-start")
+                        .child("div", |info| {
+                            info.class("flex-grow-1")
+                                .class("me-2")
+                                .attr("role", "button")
+                                .attr("onclick", &edit_onclick)
+                                .child("h6", |h6| {
+                                    h6.class("mb-1").text(&contact.name).text(" ").child(
+                                        "span",
+                                        |badge| {
+                                            badge
+                                                .class("badge")
+                                                .class(network_badge_class)
+                                                .text(&contact.network)
+                                        },
+                                    )
+                                })
+                                .child("small", |small| {
+                                    small
+                                        .class("text-muted")
+                                        .class("mono")
+                                        .attr("title", &contact.address)
+                                        .text(&address_short)
+                                })
+                        })
+                        .child("div", |btns| {
+                            btns.class("btn-group")
+                                .class("btn-group-sm")
+                                .child("button", |btn| {
+                                    btn.class("btn")
+                                        .class("btn-outline-primary")
+                                        .attr("onclick", &copy_onclick)
+                                        .attr("title", "Copy address")
+                                        .child("i", |i| i.class("bi").class("bi-clipboard"))
+                                })
+                                .child("button", |btn| {
+                                    btn.class("btn")
+                                        .class("btn-outline-secondary")
+                                        .attr("onclick", &edit_onclick)
+                                        .attr("title", "Edit")
+                                        .child("i", |i| i.class("bi").class("bi-pencil"))
+                                })
+                                .child("button", |btn| {
+                                    btn.class("btn")
+                                        .class("btn-outline-danger")
+                                        .attr("onclick", &delete_onclick)
+                                        .attr("title", "Delete")
+                                        .child("i", |i| i.class("bi").class("bi-trash"))
+                                })
+                        })
+                })
+        });
+    }
+
+    list_group.render()
+}
+
+/// Render contacts as dropdown options for address selection.
+///
+/// # Arguments
+///
+/// * `contacts_json` - JSON string containing an array of contact objects
+/// * `network` - Network filter ("mainnet", "testnet", or empty for all)
+///
+/// # Returns
+///
+/// HTML string containing option elements for a select dropdown.
+#[wasm_bindgen]
+pub fn render_contacts_dropdown(contacts_json: &str, network: &str) -> String {
+    let contacts: Vec<Contact> = match serde_json::from_str(contacts_json) {
+        Ok(c) => c,
+        Err(_) => return String::new(),
+    };
+
+    let filtered: Vec<&Contact> = if network.is_empty() {
+        contacts.iter().collect()
+    } else {
+        contacts.iter().filter(|c| c.network == network).collect()
+    };
+
+    if filtered.is_empty() {
+        return String::new();
+    }
+
+    let mut options = Element::new("optgroup").attr("label", "Contacts");
+
+    for contact in filtered {
+        let address_short = if contact.address.len() > 20 {
+            format!("{}...", &contact.address[..20])
+        } else {
+            contact.address.clone()
+        };
+
+        let label = format!("{} ({})", contact.name, address_short);
+
+        options = options.child("option", |opt| {
+            opt.attr("value", &contact.address).text(&label)
+        });
+    }
+
+    options.render()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

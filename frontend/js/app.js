@@ -10,6 +10,7 @@ import { initWalletUI } from "./wallet.js";
 import { initAddressViewerUI } from "./addresses.js";
 import { initSendUI } from "./send.js";
 import { initViewModeUI } from "./views.js";
+import { initContactsUI } from "./contacts.js";
 
 // Initialize application on page load
 document.addEventListener("DOMContentLoaded", async () => {
@@ -49,5 +50,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   initScannerUI();
   initAddressViewerUI();
   initSendUI();
+  initContactsUI();
   initViewModeUI();
 });

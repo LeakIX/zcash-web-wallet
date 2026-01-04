@@ -1,8 +1,8 @@
 {
-  "version": "cd0d5889a65d3fa97e5433696684c5006e39f5e1",
-  "timestamp": "2026-01-03T15:34:25.888Z",
+  "version": "478a7f699faaa064c926c66f9985a98b0ef2695c",
+  "timestamp": "2026-01-03T17:53:23.744Z",
   "files": {
-    "js/app.js": "64fc865eb0fd2ce589abdc176a0af3fff5653ee8a6e619e75702b162469ead8c",
+    "js/app.js": "09840a58271520d81962bbb4f1ab1bbf242c522ffa5264ee5dc14428cca3349f",
     "js/wasm.js": "d59292cdb2e7884ec9d8e05d1accc9f5ec81871119128580039fb6d014f7b8fd",
     "js/decrypt-viewer.js": "22937ceb279aa835696b07c13b805ada5521bf5d4c99a1148deadbdd0cbb7df9",
     "js/scanner.js": "11d9f5205547a6d57c518641b0f446d07045be11552c4f4a25e9a0ec9ff03454",
@@ -13,14 +13,16 @@
     "js/theme.js": "8b28e4862c889ae879580cf31305045f52911c9c6c14b1e01cc0e5e54c13a6e1",
     "js/utils.js": "48bcf292164fa6c838c2d75c641716120bc1c708d05c5574def86d637c2a9dde",
     "js/rpc.js": "3570f6041338ce13af83c3a464883f4eaa2ba64cf39bc0ed5f648d154d1213fc",
-    "js/constants.js": "5fedb576c5fc75aa09c13d43d9c99ddcd2bfcc7052587c9ad4bf01785d0cfee7",
+    "js/constants.js": "2d98ada087d51d0a99b94611163874cc6f5a283c9c6df248afc9dbbd4bce16c7",
+    "js/contacts.js": "5c1da87877477a3e5e786afa5f9b343b006c5a9750a6431094a7b6cc041dc541",
     "js/storage/endpoints.js": "d96ee1d2bcaf255da9bce49fe179ca4b1c24920153ea20274d22dd7b82e2592e",
     "js/storage/notes.js": "b450e584b23a9a9aaf537a605ab6bee96af6bf9e0eb144f1a886fd71307cf05e",
     "js/storage/wallets.js": "9810c2ad381e93b190c9df05b025a56f5d946a24037ebc7e2992d175b839af6e",
     "js/storage/ledger.js": "9c27db3ca5d269b6de53fdf5382ae36b4c12ccd9e87c7556387be6d28295f55c",
+    "js/storage/contacts.js": "7de4b655d82db9a5c3330fc4fee850c120e1c2749dca45d006b93bf1dca206f3",
     "css/style.css": "e96edf0153354cbfd64beeb8912f1b8204784db62153949e67f3f80d54f0a5f6",
-    "index.html": "7adb0e5a0e04b9579eed30295f21b085e343c71cf88ea16f8b40f949b467e740",
-    "pkg/zcash_tx_viewer.js": "7445acb96a78287359dd6c959951419943f87c42d7a0fc58bd0d3539d967ba16",
-    "pkg/zcash_tx_viewer_bg.wasm": "2cdafbfc89a48e604b331e56406a0b0039de5063f67985eaf795ac663dd4e3a3"
+    "index.html": "82435b0398c3edf3ebeae8b51e3e77c55a4d308cba4c9c08b2024a765c4add3d",
+    "pkg/zcash_tx_viewer.js": "9cacaa6d7f19439f6f5b62d90b9cc370bf875414684d24ca307c5c4902541fd8",
+    "pkg/zcash_tx_viewer_bg.wasm": "28016ec897ec5921a1af399d84db5bdbc8de8472737248111802d71933084840"
   }
 }

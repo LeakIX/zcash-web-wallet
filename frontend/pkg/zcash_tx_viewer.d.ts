@@ -395,6 +395,34 @@ export function render_balance_card(balance_zatoshis: bigint, wallet_alias?: str
 export function render_broadcast_result(message: string, alert_type: string): string;
 
 /**
+ * Render contacts as dropdown options for address selection.
+ *
+ * # Arguments
+ *
+ * * `contacts_json` - JSON string containing an array of contact objects
+ * * `network` - Network filter ("mainnet", "testnet", or empty for all)
+ *
+ * # Returns
+ *
+ * HTML string containing option elements for a select dropdown.
+ */
+export function render_contacts_dropdown(contacts_json: string, network: string): string;
+
+/**
+ * Render a list of contacts as HTML.
+ *
+ * # Arguments
+ *
+ * * `contacts_json` - JSON string containing an array of contact objects
+ *
+ * # Returns
+ *
+ * HTML string containing a list-group of contacts with edit/delete buttons,
+ * or an empty state message if no contacts exist.
+ */
+export function render_contacts_list(contacts_json: string): string;
+
+/**
  * Generate HTML for the derived addresses table.
  *
  * Creates a table displaying derived transparent and unified addresses with
@@ -828,6 +856,8 @@ export interface InitOutput {
   readonly parse_viewing_key: (a: number, b: number) => [number, number];
   readonly render_balance_card: (a: bigint, b: number, c: number) => [number, number];
   readonly render_broadcast_result: (a: number, b: number, c: number, d: number) => [number, number];
+  readonly render_contacts_dropdown: (a: number, b: number, c: number, d: number) => [number, number];
+  readonly render_contacts_list: (a: number, b: number) => [number, number];
   readonly render_derived_addresses_table: (a: number, b: number, c: number, d: number) => [number, number];
   readonly render_dismissible_alert: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
   readonly render_empty_state: (a: number, b: number, c: number, d: number) => [number, number];

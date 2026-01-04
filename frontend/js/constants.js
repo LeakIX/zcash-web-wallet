@@ -11,6 +11,7 @@ export const STORAGE_KEYS = {
   ledger: "zcash_viewer_ledger",
   viewMode: "zcash_viewer_view_mode",
   theme: "zcash_viewer_theme",
+  contacts: "zcash_viewer_contacts",
 };
 
 // View modes: simple, accountant, admin

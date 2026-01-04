@@ -27,6 +27,8 @@ export const mark_transparent_spent: (a: number, b: number, c: number, d: number
 export const parse_viewing_key: (a: number, b: number) => [number, number];
 export const render_balance_card: (a: bigint, b: number, c: number) => [number, number];
 export const render_broadcast_result: (a: number, b: number, c: number, d: number) => [number, number];
+export const render_contacts_dropdown: (a: number, b: number, c: number, d: number) => [number, number];
+export const render_contacts_list: (a: number, b: number) => [number, number];
 export const render_derived_addresses_table: (a: number, b: number, c: number, d: number) => [number, number];
 export const render_dismissible_alert: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
 export const render_empty_state: (a: number, b: number, c: number, d: number) => [number, number];
