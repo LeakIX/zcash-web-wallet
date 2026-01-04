@@ -3622,9 +3622,9 @@ pub fn render_broadcast_result(message: &str, alert_type: &str) -> String {
         .render()
 }
 
-/// Derived address entry for address viewer.
+/// Address table row for address viewer.
 #[derive(serde::Deserialize)]
-struct DerivedAddress {
+struct AddressTableRow {
     index: u32,
     transparent: String,
     unified: String,
@@ -3639,7 +3639,7 @@ struct DerivedAddress {
 ///
 /// # Arguments
 ///
-/// * `addresses_json` - JSON array of DerivedAddress objects
+/// * `addresses_json` - JSON array of AddressTableRow objects
 /// * `network` - Network name ("mainnet" or "testnet") for explorer links
 ///
 /// # Returns
@@ -3647,7 +3647,7 @@ struct DerivedAddress {
 /// HTML string for the addresses table including duplicate warning if applicable.
 #[wasm_bindgen]
 pub fn render_derived_addresses_table(addresses_json: &str, network: &str) -> String {
-    let addresses: Vec<DerivedAddress> = match serde_json::from_str(addresses_json) {
+    let addresses: Vec<AddressTableRow> = match serde_json::from_str(addresses_json) {
         Ok(a) => a,
         Err(_) => return String::new(),
     };
