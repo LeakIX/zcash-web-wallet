@@ -295,7 +295,16 @@ test.describe("Contact Autocomplete in Send Views", () => {
     await expect(dropdown).toHaveCount(1);
   });
 
-  test("should copy address when using copy button", async ({ page }) => {
+  test("should copy address when using copy button", async ({
+    page,
+    browserName,
+  }) => {
+    // Skip on WebKit as clipboard permissions are not supported
+    test.skip(
+      browserName === "webkit",
+      "Clipboard permissions not supported in WebKit"
+    );
+
     // Add a contact
     await navigateToTab(page, "contacts");
     await page.fill("#contactName", "Copy Test");

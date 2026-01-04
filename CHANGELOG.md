@@ -83,6 +83,8 @@ and this project adheres to
   - Functions now handled by WASM: formatZatoshi, escapeHtml, truncateAddress,
     truncateMiddle, renderTxidLink, renderAddressLink, explorer URL helpers
   - Reduce utils.js by ~80 lines
+- Skip E2E tests when on WebKit as it requires permissions
+  ([#203](https://github.com/LeakIX/zcash-web-wallet/pull/203/))
 
 ## 0.2.0 - 20260101
 
