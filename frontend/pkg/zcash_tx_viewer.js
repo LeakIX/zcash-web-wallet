@@ -1058,7 +1058,7 @@ export function render_contacts_list(contacts_json) {
  *
  * # Arguments
  *
- * * `addresses_json` - JSON array of DerivedAddress objects
+ * * `addresses_json` - JSON array of AddressTableRow objects
  * * `network` - Network name ("mainnet" or "testnet") for explorer links
  *
  * # Returns
