@@ -52,8 +52,8 @@ impl From<Network> for NetworkKind {
     }
 }
 
-impl std::fmt::Display for NetworkKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for NetworkKind {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.as_str())
     }
 }
@@ -78,6 +78,73 @@ impl<'de> Deserialize<'de> for NetworkKind {
             "testnet" | "test" => Ok(NetworkKind::Testnet),
             "regtest" => Ok(NetworkKind::Regtest),
             _ => Err(serde::de::Error::custom(format!("unknown network: {}", s))),
+        }
+    }
+}
+
+/// Type of viewing key.
+///
+/// Represents the different types of Zcash viewing keys that can be parsed
+/// and used for transaction decryption.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ViewingKeyType {
+    /// Unified Full Viewing Key - can view all shielded pools.
+    Ufvk,
+    /// Unified Incoming Viewing Key - can detect incoming transactions.
+    Uivk,
+    /// Legacy Sapling Extended Full Viewing Key - Sapling pool only.
+    SaplingExtFvk,
+}
+
+impl ViewingKeyType {
+    /// Get the string representation of the viewing key type (lowercase, for serialization).
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ViewingKeyType::Ufvk => "ufvk",
+            ViewingKeyType::Uivk => "uivk",
+            ViewingKeyType::SaplingExtFvk => "sapling_extfvk",
+        }
+    }
+
+    /// Get the user-friendly display name of the viewing key type.
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            ViewingKeyType::Ufvk => "UFVK",
+            ViewingKeyType::Uivk => "UIVK",
+            ViewingKeyType::SaplingExtFvk => "Sapling ExtFVK",
+        }
+    }
+}
+
+impl core::fmt::Display for ViewingKeyType {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+impl Serialize for ViewingKeyType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for ViewingKeyType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        match s.to_lowercase().as_str() {
+            "ufvk" => Ok(ViewingKeyType::Ufvk),
+            "uivk" => Ok(ViewingKeyType::Uivk),
+            "sapling_extfvk" | "sapling extfvk" => Ok(ViewingKeyType::SaplingExtFvk),
+            _ => Err(serde::de::Error::custom(format!(
+                "unknown viewing key type: {}",
+                s
+            ))),
         }
     }
 }
@@ -179,8 +246,10 @@ pub struct TransparentOutput {
 pub struct ViewingKeyInfo {
     /// Whether the viewing key was successfully parsed.
     pub valid: bool,
-    /// Type of viewing key: "UFVK", "UIVK", or "Sapling ExtFVK".
-    pub key_type: String,
+    /// Type of viewing key. None if the key is invalid.
+    pub key_type: Option<ViewingKeyType>,
+    /// User-friendly display name for the key type. None if the key is invalid.
+    pub key_type_display: Option<String>,
     /// Whether the key can view Sapling shielded transactions.
     pub has_sapling: bool,
     /// Whether the key can view Orchard shielded transactions.
@@ -234,8 +303,8 @@ impl Pool {
     }
 }
 
-impl std::fmt::Display for Pool {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for Pool {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.as_str())
     }
 }
@@ -920,10 +989,10 @@ impl LedgerCollection {
             .collect();
         // Sort: None (unconfirmed) first, then by height descending
         entries.sort_by(|a, b| match (&b.block_height, &a.block_height) {
-            (None, Some(_)) => std::cmp::Ordering::Greater,
-            (Some(_), None) => std::cmp::Ordering::Less,
+            (None, Some(_)) => core::cmp::Ordering::Greater,
+            (Some(_), None) => core::cmp::Ordering::Less,
             (Some(bh), Some(ah)) => bh.cmp(ah),
-            (None, None) => std::cmp::Ordering::Equal,
+            (None, None) => core::cmp::Ordering::Equal,
         });
         entries
     }
@@ -1124,6 +1193,64 @@ mod tests {
     #[test]
     fn test_pool_deserialization_error() {
         assert!(serde_json::from_str::<Pool>("\"invalid\"").is_err());
+    }
+
+    // ========================================================================
+    // ViewingKeyType serialization tests
+    // ========================================================================
+
+    #[test]
+    fn test_viewing_key_type_serialization() {
+        assert_eq!(
+            serde_json::to_string(&ViewingKeyType::Ufvk).unwrap(),
+            "\"ufvk\""
+        );
+        assert_eq!(
+            serde_json::to_string(&ViewingKeyType::Uivk).unwrap(),
+            "\"uivk\""
+        );
+        assert_eq!(
+            serde_json::to_string(&ViewingKeyType::SaplingExtFvk).unwrap(),
+            "\"sapling_extfvk\""
+        );
+    }
+
+    #[test]
+    fn test_viewing_key_type_deserialization() {
+        assert_eq!(
+            serde_json::from_str::<ViewingKeyType>("\"ufvk\"").unwrap(),
+            ViewingKeyType::Ufvk
+        );
+        assert_eq!(
+            serde_json::from_str::<ViewingKeyType>("\"uivk\"").unwrap(),
+            ViewingKeyType::Uivk
+        );
+        assert_eq!(
+            serde_json::from_str::<ViewingKeyType>("\"sapling_extfvk\"").unwrap(),
+            ViewingKeyType::SaplingExtFvk
+        );
+        // Case insensitive
+        assert_eq!(
+            serde_json::from_str::<ViewingKeyType>("\"UFVK\"").unwrap(),
+            ViewingKeyType::Ufvk
+        );
+        // Alternative format
+        assert_eq!(
+            serde_json::from_str::<ViewingKeyType>("\"sapling extfvk\"").unwrap(),
+            ViewingKeyType::SaplingExtFvk
+        );
+    }
+
+    #[test]
+    fn test_viewing_key_type_deserialization_error() {
+        assert!(serde_json::from_str::<ViewingKeyType>("\"invalid\"").is_err());
+    }
+
+    #[test]
+    fn test_viewing_key_type_display() {
+        assert_eq!(ViewingKeyType::Ufvk.to_string(), "ufvk");
+        assert_eq!(ViewingKeyType::Uivk.to_string(), "uivk");
+        assert_eq!(ViewingKeyType::SaplingExtFvk.to_string(), "sapling_extfvk");
     }
 
     // ========================================================================

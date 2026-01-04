@@ -30,7 +30,7 @@ pub use zcash_wallet_core::{
     LedgerCollection, LedgerEntry, MarkSpentResult, NetworkKind, NoteCollection, Pool, ScanResult,
     ScanTransactionResult, ScannedNote, ScannedTransparentOutput, SpentNullifier, StorageResult,
     StoredNote, StoredWallet, TransparentInput, TransparentOutput, TransparentSpend,
-    ViewingKeyInfo, WalletCollection, WalletResult,
+    ViewingKeyInfo, ViewingKeyType, WalletCollection, WalletResult,
 };
 
 /// Log to browser console
@@ -45,7 +45,8 @@ pub fn parse_viewing_key(key: &str) -> String {
     serde_json::to_string(&result).unwrap_or_else(|e| {
         serde_json::to_string(&ViewingKeyInfo {
             valid: false,
-            key_type: String::new(),
+            key_type: None,
+            key_type_display: None,
             has_sapling: false,
             has_orchard: false,
             network: None,
@@ -76,9 +77,11 @@ fn parse_viewing_key_inner(key: &str) -> ViewingKeyInfo {
             .iter()
             .any(|item| matches!(item, unified::Fvk::Orchard(_)));
 
+        let key_type = ViewingKeyType::Ufvk;
         return ViewingKeyInfo {
             valid: true,
-            key_type: "UFVK".to_string(),
+            key_type: Some(key_type),
+            key_type_display: Some(key_type.display_name().to_string()),
             has_sapling,
             has_orchard,
             network: Some(network_type_to_kind(network)),
@@ -88,9 +91,11 @@ fn parse_viewing_key_inner(key: &str) -> ViewingKeyInfo {
 
     // Try parsing as Unified Incoming Viewing Key (UIVK)
     if let Ok((network, _uivk)) = unified::Uivk::decode(key) {
+        let key_type = ViewingKeyType::Uivk;
         return ViewingKeyInfo {
             valid: true,
-            key_type: "UIVK".to_string(),
+            key_type: Some(key_type),
+            key_type_display: Some(key_type.display_name().to_string()),
             has_sapling: true,
             has_orchard: true,
             network: Some(network_type_to_kind(network)),
@@ -109,9 +114,11 @@ fn parse_viewing_key_inner(key: &str) -> ViewingKeyInfo {
 
         // Basic validation - proper bech32 decoding
         if bech32::decode(key).is_ok() {
+            let key_type = ViewingKeyType::SaplingExtFvk;
             return ViewingKeyInfo {
                 valid: true,
-                key_type: "Sapling ExtFVK".to_string(),
+                key_type: Some(key_type),
+                key_type_display: Some(key_type.display_name().to_string()),
                 has_sapling: true,
                 has_orchard: false,
                 network: Some(network),
@@ -122,7 +129,8 @@ fn parse_viewing_key_inner(key: &str) -> ViewingKeyInfo {
 
     ViewingKeyInfo {
         valid: false,
-        key_type: String::new(),
+        key_type: None,
+        key_type_display: None,
         has_sapling: false,
         has_orchard: false,
         network: None,

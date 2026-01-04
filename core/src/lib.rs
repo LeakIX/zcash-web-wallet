@@ -16,7 +16,7 @@ pub use types::{
     DerivedAddress, LedgerCollection, LedgerEntry, MarkSpentResult, NetworkKind, NoteCollection,
     Pool, ScanResult, ScanTransactionResult, ScannedNote, ScannedTransparentOutput, SpentNullifier,
     StorageResult, StoredNote, StoredWallet, TransparentInput, TransparentOutput, TransparentSpend,
-    ViewingKeyInfo, WalletCollection, WalletResult,
+    ViewingKeyInfo, ViewingKeyType, WalletCollection, WalletResult,
 };
 pub use wallet::{
     WalletInfo, derive_transparent_addresses, derive_unified_addresses, derive_wallet,

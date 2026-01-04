@@ -45,7 +45,7 @@ export function validateViewingKey() {
 
       keyInfo.innerHTML = `
         <span class="text-success">
-          Valid ${result.key_type} (${result.network})
+          Valid ${result.key_type_display} (${result.network})
           ${capabilities.length > 0 ? "- " + capabilities.join(", ") : ""}
         </span>
       `;
