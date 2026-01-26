@@ -12,6 +12,9 @@ and this project adheres to
 
 ### Changed
 
+- Update Rust nightly to `nightly-2026-01-25`
+  ([#226](https://github.com/LeakIX/zcash-web-wallet/pull/226))
+
 - Replace `key_type` string field with `ViewingKeyType` enum in `ViewingKeyInfo`
   for better type safety
   ([#97](https://github.com/LeakIX/zcash-web-wallet/issues/97))
@@ -49,6 +52,9 @@ and this project adheres to
   - Add render_contacts_list(), render_contacts_dropdown() WASM functions
 
 ### Changed
+
+- Update Rust nightly to `nightly-2026-01-25`
+  ([#226](https://github.com/LeakIX/zcash-web-wallet/pull/226))
 
 - Optimize CI: E2E tests use committed artifacts instead of rebuilding
   ([#180](https://github.com/LeakIX/zcash-web-wallet/issues/180),
@@ -114,6 +120,9 @@ and this project adheres to
   ([#158](https://github.com/LeakIX/zcash-web-wallet/pull/158))
 
 ### Changed
+
+- Update Rust nightly to `nightly-2026-01-25`
+  ([#226](https://github.com/LeakIX/zcash-web-wallet/pull/226))
 
 - Consolidate `pages-build` CI job into deploy workflow
   ([#152](https://github.com/LeakIX/zcash-web-wallet/pull/152))
