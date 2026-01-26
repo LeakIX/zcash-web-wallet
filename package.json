@@ -7,7 +7,7 @@
   "author": "Danny Willems <be.danny.willems@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "@playwright/test": "^1.57.0",
+    "@playwright/test": "^1.58.0",
     "prettier": "^3.7.4",
     "sass": "^1.97.1"
   }
