@@ -60,7 +60,7 @@ jobs:
       - name: Create Pull Request
         id: create-pr
         if: steps.get-nightly.outputs.version != steps.get-current.outputs.version
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.PAT_WORKFLOW }}
           title: "chore: update Rust nightly to ${{ steps.get-nightly.outputs.version }}"
