@@ -7,7 +7,8 @@ A privacy-preserving Zcash wallet toolkit that runs entirely in your browser.
 Generate wallets, view shielded transactions, and track balances - all
 client-side with no server dependencies.
 
-This project is vibe-coded. It was an attempt to see how AI code assistants perform back then.
+This project is vibe-coded. It was an attempt to see how AI code assistants
+perform back then.
 
 ## Features
 
