@@ -9,6 +9,6 @@
   "devDependencies": {
     "@playwright/test": "^1.57.0",
     "prettier": "^3.7.4",
-    "sass": "^1.97.3"
+    "sass": "^1.98.0"
   }
 }
